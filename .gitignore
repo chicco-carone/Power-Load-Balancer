@@ -16,3 +16,8 @@ coverage.xml
 # Home Assistant configuration
 config/*
 !config/configuration.yaml
+.github/copilot-instructions.md
+config/configuration.yaml
+icons/power_load_balancer_full.png
+power_load_balancer.code-workspace
+config/configuration.yaml
