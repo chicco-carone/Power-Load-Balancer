@@ -1,0 +1,13 @@
+{
+  "domain": "power_load_balancer",
+  "name": "Power Load Balancer",
+  "codeowners": [],
+  "config_flow": true,
+  "dependencies": [
+    "sensor",
+    "switch"
+  ],
+  "integration_type": "device",
+  "issue_tracker": "",
+  "version": "1.0.0"
+}

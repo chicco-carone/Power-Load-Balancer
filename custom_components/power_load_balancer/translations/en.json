@@ -1,0 +1,156 @@
+{
+    "config": {
+        "step": {
+            "user": {
+                "menu": {
+                    "edit_main_sensor": "Configure Main Sensor",
+                    "add_sensor": "Add New Monitored Sensor",
+                    "edit_sensor_{i}": "Edit: {sensor_name}",
+                    "finish": "Finish Configuration"
+                },
+                "data": {
+                    "action": "Action"
+                },
+                "description": "Welcome to the Power Load Balancer setup. Configure your main power sensor and add monitored power sensors with their corresponding appliances.",
+                "title": "Power Load Balancer Setup",
+                "abort": {
+                    "invalid_edit_action": "Invalid action selected for editing.",
+                    "main_sensor_required": "Please configure the main power sensor before finishing."
+                }
+            },
+            "main_config": {
+                "menu": {
+                    "edit_main_sensor": "Configure Main Sensor",
+                    "add_sensor": "Add New Monitored Sensor",
+                    "edit_sensor_{i}": "Edit: {sensor_name}",
+                    "finish": "Finish Configuration"
+                },
+                "data": {
+                    "action": "Action"
+                },
+                "description": "Configure the main power sensor and the total power budget.",
+                "title": "Power Load Balancer Configuration",
+                "abort": {
+                    "main_sensor_required": "Main power sensor is required.",
+                    "valid_budget_required": "A valid power budget (greater than 0) is required."
+                }
+            },
+            "edit_main_sensor": {
+                "data": {
+                    "main_power_sensor": "Main Power Sensor",
+                    "power_budget_watt": "Power Budget (Watt)"
+                },
+                "description": "Configure the main power sensor and the total power budget.",
+                "title": "Edit Main Sensor Settings",
+                "errors": {
+                    "valid_budget_required": "Please enter a valid power budget (a positive integer)."
+                }
+            },
+            "add_sensor": {
+                "data": {
+                    "entity_id": "Monitored Power Sensor",
+                    "name": "Custom Name (Optional)",
+                    "importance": "Importance (1=Low, 10=High)",
+                    "last_resort": "Last Resort (Turn off only if absolutely necessary)",
+                    "appliance": "Controllable Appliance (Switch or Light)",
+                    "assumed_power_on": "Assumed Power (when appliance is ON, in Watt, Optional)"
+                },
+                "description": "Add a new power sensor to monitor and its corresponding controllable appliance.",
+                "title": "Add Monitored Sensor",
+                "errors": {
+                    "select_sensor_required": "Please select a monitored power sensor.",
+                    "select_appliance_required": "Please select the controllable appliance for this sensor."
+                }
+            },
+            "edit_sensor": {
+                "data": {
+                    "entity_id": "Monitored Power Sensor",
+                    "name": "Custom Name (Optional)",
+                    "importance": "Importance (1=Low, 10=High)",
+                    "last_resort": "Last Resort (Turn off only if absolutely necessary)",
+                    "appliance": "Controllable Appliance (Switch or Light)",
+                    "assumed_power_on": "Assumed Power (when appliance is ON, in Watt, Optional)",
+                    "remove_sensor": "Remove Sensor"
+                },
+                "description": "Edit the settings for this monitored power sensor and its appliance.",
+                "title": "Edit Monitored Sensor",
+                "errors": {
+                    "select_sensor_required": "Please select a monitored power sensor.",
+                    "select_appliance_required": "Please select the controllable appliance for this sensor."
+                },
+                "abort": {
+                    "invalid_sensor_index": "Invalid sensor selected for editing."
+                }
+            }
+        }
+    },
+    "options": {
+        "step": {
+            "init": {
+                "data": {
+                    "main_power_sensor": "Main Power Sensor",
+                    "power_budget_watt": "Power Budget (Watt)"
+                },
+                "description": "Edit the main power sensor and total power budget.",
+                "title": "Edit Main Settings"
+            },
+            "sensor_menu": {
+                "menu": {
+                    "edit_main_sensor": "Edit Main Sensor Settings",
+                    "add_sensor": "Add New Monitored Sensor",
+                    "edit_sensor_{i}": "Edit: {sensor_name}",
+                    "finish": "Save Configuration"
+                },
+                "data": {
+                    "action": "Action"
+                },
+                "description": "Manage your monitored power sensors and their associated appliances.",
+                "title": "Manage Monitored Sensors"
+            },
+            "add_sensor": {
+                "data": {
+                    "entity_id": "Monitored Power Sensor",
+                    "name": "Custom Name (Optional)",
+                    "importance": "Importance (1=Low, 10=High)",
+                    "last_resort": "Last Resort (Turn off only if absolutely necessary)",
+                    "appliance": "Controllable Appliance (Switch or Light)",
+                    "assumed_power_on": "Assumed Power (when appliance is ON, in Watt, Optional)"
+                },
+                "description": "Add a new power sensor to monitor and its corresponding controllable appliance.",
+                "title": "Add Monitored Sensor",
+                "errors": {
+                    "select_sensor_required": "Please select a monitored power sensor.",
+                    "select_appliance_required": "Please select the controllable appliance for this sensor."
+                }
+            },
+            "edit_sensor": {
+                "data": {
+                    "entity_id": "Monitored Power Sensor",
+                    "name": "Custom Name (Optional)",
+                    "importance": "Importance (1=Low, 10=High)",
+                    "last_resort": "Last Resort (Turn off only if absolutely necessary)",
+                    "appliance": "Controllable Appliance (Switch or Light)",
+                    "assumed_power_on": "Assumed Power (when appliance is ON, in Watt, Optional)",
+                    "remove_sensor": "Remove Sensor"
+                },
+                "description": "Edit the settings for this monitored power sensor and its appliance.",
+                "title": "Edit Monitored Sensor",
+                "errors": {
+                    "select_sensor_required": "Please select a monitored power sensor.",
+                    "select_appliance_required": "Please select the controllable appliance for this sensor."
+                },
+                "abort": {
+                    "invalid_sensor_index": "Invalid sensor selected for editing."
+                }
+            },
+            "edit_main_sensor": {
+                "data": {
+                    "main_power_sensor": "Main Power Sensor",
+                    "power_budget_watt": "Power Budget (Watt)"
+                },
+                "description": "Edit the main power sensor and total power budget.",
+                "title": "Edit Main Sensor Settings"
+            }
+        }
+    }
+}
