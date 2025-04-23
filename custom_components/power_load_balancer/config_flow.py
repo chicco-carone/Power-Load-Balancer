@@ -482,7 +482,9 @@ class PowerLoadBalancerOptionsFlow(OptionsFlow):
         self._config_data: dict[str, Any] = dict(data_source)
 
     async def async_step_init(
-        self, user_input: dict[str, object] | None = None, force_show_form: bool = False  # noqa: FBT001, FBT002
+        self,
+        user_input: dict[str, object] | None = None,
+        force_show_form: bool = False,  # noqa: FBT001, FBT002
     ) -> ConfigFlowResult:
         """
         First step in options flow.
