@@ -1,4 +1,34 @@
 {
+    "services": {
+        "turn_off_appliance": {
+            "name": "Turn Off Appliance",
+            "description": "Turn off an appliance with custom reason logging",
+            "fields": {
+                "entity_id": {
+                    "name": "Entity ID",
+                    "description": "The entity ID of the appliance to turn off"
+                },
+                "reason": {
+                    "name": "Reason",
+                    "description": "Reason why the appliance is being turned off (optional)"
+                }
+            }
+        },
+        "turn_on_appliance": {
+            "name": "Turn On Appliance",
+            "description": "Turn on an appliance with custom reason logging",
+            "fields": {
+                "entity_id": {
+                    "name": "Entity ID",
+                    "description": "The entity ID of the appliance to turn on"
+                },
+                "reason": {
+                    "name": "Reason",
+                    "description": "Reason why the appliance is being turned on (optional)"
+                }
+            }
+        }
+    },
     "config": {
         "step": {
             "user": {
@@ -52,8 +82,7 @@
                     "name": "Custom Name (Optional)",
                     "importance": "Importance (1=Low, 10=High)",
                     "last_resort": "Last Resort (Turn off only if absolutely necessary)",
-                    "appliance": "Controllable Appliance (Switch or Light)",
-                    "assumed_power_on": "Assumed Power (when appliance is ON, in Watt, Optional)"
+                    "appliance": "Controllable Appliance (Switch or Light)"
                 },
                 "description": "Add a new power sensor to monitor and its corresponding controllable appliance.",
                 "title": "Add Monitored Sensor",
@@ -69,7 +98,6 @@
                     "importance": "Importance (1=Low, 10=High)",
                     "last_resort": "Last Resort (Turn off only if absolutely necessary)",
                     "appliance": "Controllable Appliance (Switch or Light)",
-                    "assumed_power_on": "Assumed Power (when appliance is ON, in Watt, Optional)",
                     "remove_sensor": "Remove Sensor"
                 },
                 "description": "Edit the settings for this monitored power sensor and its appliance.",
@@ -113,8 +141,7 @@
                     "name": "Custom Name (Optional)",
                     "importance": "Importance (1=Low, 10=High)",
                     "last_resort": "Last Resort (Turn off only if absolutely necessary)",
-                    "appliance": "Controllable Appliance (Switch or Light)",
-                    "assumed_power_on": "Assumed Power (when appliance is ON, in Watt, Optional)"
+                    "appliance": "Controllable Appliance (Switch or Light)"
                 },
                 "description": "Add a new power sensor to monitor and its corresponding controllable appliance.",
                 "title": "Add Monitored Sensor",
@@ -130,7 +157,6 @@
                     "importance": "Importance (1=Low, 10=High)",
                     "last_resort": "Last Resort (Turn off only if absolutely necessary)",
                     "appliance": "Controllable Appliance (Switch or Light)",
-                    "assumed_power_on": "Assumed Power (when appliance is ON, in Watt, Optional)",
                     "remove_sensor": "Remove Sensor"
                 },
                 "description": "Edit the settings for this monitored power sensor and its appliance.",
