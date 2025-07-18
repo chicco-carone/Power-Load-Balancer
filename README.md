@@ -13,12 +13,14 @@ A Home Assistant custom integration to prevent exceeding your household's power 
 -   Optional "assumed power on" value for appliances to react quickly to potential overloads before sensor data updates.
 -   Provides a control switch entity to easily enable or disable the load balancing function.
 -   Includes a sensor entity to log balancing events (e.g., which appliance was turned off and why).
+-   **Custom Services**: Enhanced `turn_on_appliance` and `turn_off_appliance` services with proper logging attribution.
+-   **Enhanced Logging**: Track all balancing actions with detailed event logs and clear attribution in HA logs.
 
 ## ⚠️ Prerequisites
 
 Before installing, ensure you have:
 
--   Home Assistant (version 202X.X or later is recommended).
+-   Home Assistant (This has currently been tested from 2025.6 and later).
 -   Power sensors integrated into Home Assistant that provide real-time power consumption (in Watts).
 -   Controllable switches or light entities integrated into Home Assistant for the appliances you want to manage.
 -   HACS (Home Assistant Community Store) is recommended for easier installation and updates.
@@ -29,27 +31,12 @@ Before installing, ensure you have:
 
 1.  In Home Assistant, navigate to **HACS -> Integrations**.
 2.  Click the three dots in the top right corner and select **"Custom repositories"**.
-3.  Add the URL of **your GitHub repository** for this integration.
+3.  Add this url `https://github.com/chicco-carone/Power-Load-Balancer.git`.
 4.  Select the category **"Integration"**.
 5.  Click **"Add"**.
 6.  Search for "Power Load Balancer" in the HACS Integrations list.
 7.  Click on the integration, then click **"Download"**.
 8.  Restart Home Assistant.
-
-### Manual Installation
-
-1.  Navigate to your Home Assistant configuration directory (where your `configuration.yaml` is located).
-2.  Create a `custom_components` directory if it doesn't exist.
-3.  Clone this repository or download the contents and place the `power_load_balancer` folder inside the `custom_components` directory.
-    ```bash
-    # Example using git clone
-    cd /path/to/your_config_dir
-    mkdir custom_components
-    cd custom_components
-    git clone https://github.com/your_github_username/power_load_balancer.git
-    ```
-4.  Rename the cloned directory to `power_load_balancer` if applicable.
-5.  Restart Home Assistant.
 
 ## ⚙️ Configuration
 
@@ -80,6 +67,23 @@ Once configured, the integration will automatically monitor your power usage and
 -   **Control Switch:** A switch entity named `switch.power_load_balancer_control_switch` (or similar depending on the automatic entity ID generation) will be created. You can use this switch to manually enable or disable the automatic load balancing function.
 -   **Event Log Sensor:** A sensor entity named `sensor.power_load_balancer_event_log` (or similar) will be created. The state will show the last balancing action, and the `events` attribute will contain a list of recent balancing events (e.g., when appliances were turned off).
 
+### 🔧 Custom Services
+
+The integration provides two enhanced services with better logging attribution:
+
+-   **`power_load_balancer.turn_off_appliance`**: Turn off an appliance with custom reason logging
+-   **`power_load_balancer.turn_on_appliance`**: Turn on an appliance with custom reason logging
+
+**Example usage:**
+```yaml
+service: power_load_balancer.turn_off_appliance
+data:
+  entity_id: switch.dishwasher
+  reason: "Power budget exceeded by 150W"
+```
+
+These services provide enhanced logging in Home Assistant's logbook and logs, making it easy to track all power management actions. These actions are not supposed to be used directly by the user but are used by the integration itself to manage appliances based on power budget constraints.
+
 ## ❓ Troubleshooting
 
 -   **Balancing Not Happening:**
@@ -104,4 +108,3 @@ This project is licensed under the [MIT License](LICENSE) - see the LICENSE file
 ---
 
 **Disclaimer:** This is a custom component and is not officially endorsed or supported by the Home Assistant team. Use at your own risk. Ensure your electrical wiring and appliances are suitable for this type of automation.
-
