@@ -1,4 +1,5 @@
 {
+    "device_unavailable": "Device {entity_id} is unavailable. Please check its connection or if its not used anymore remove it from the integration configuration",
     "services": {
         "turn_off_appliance": {
             "name": "Turn Off Appliance",

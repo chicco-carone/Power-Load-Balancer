@@ -12,6 +12,7 @@ from homeassistant.core import Context, HomeAssistant, State, callback
 from homeassistant.helpers.device_registry import (
     DeviceInfo,
 )
+from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.device_registry import (
     async_get as async_get_device_registry,
 )
@@ -618,6 +619,14 @@ class PowerLoadBalancer:
             logger.exception(
                 "Appliance entity issue", entity_id=entity_id, error=str(exc)
             )
+            ir.async_create_issue(
+                self.hass,
+                DOMAIN,
+                f"{entity_id}_unavailable",
+                severity=ir.IssueSeverity.ERROR,
+                translation_key="device_unavailable",
+                translation_placeholders={"entity_id": entity_id},
+            )
             if self._event_log_sensor:
                 self._event_log_sensor.add_log_entry(
                     f"Failed to turn off {entity_id}. Error: {exc.error_code}"
@@ -765,6 +774,14 @@ class PowerLoadBalancer:
                 "Service call failed - entity issue",
                 entity_id=entity_id,
                 error=str(exc),
+            )
+            ir.async_create_issue(
+                self.hass,
+                DOMAIN,
+                f"{entity_id}_unavailable",
+                severity=ir.IssueSeverity.ERROR,
+                translation_key="device_unavailable",
+                translation_placeholders={"entity_id": entity_id},
             )
             if self._event_log_sensor:
                 self._event_log_sensor.add_log_entry(
