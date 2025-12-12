@@ -101,6 +101,10 @@ These services provide enhanced logging in Home Assistant's logbook and logs, ma
 
 Contributions are welcome! If you find a bug or have an idea for a new feature, please open an issue or submit a pull request on the GitHub repository.
 
+## Planned Features
+- [ ] Automatically turn back on devices
+- [ ] Support for solar energy in calculation
+
 ## 📄 License
 
 This project is licensed under the [MIT License](LICENSE) - see the LICENSE file for details.
@@ -108,3 +112,4 @@ This project is licensed under the [MIT License](LICENSE) - see the LICENSE file
 ---
 
 **Disclaimer:** This is a custom component and is not officially endorsed or supported by the Home Assistant team. Use at your own risk. Ensure your electrical wiring and appliances are suitable for this type of automation.
+
