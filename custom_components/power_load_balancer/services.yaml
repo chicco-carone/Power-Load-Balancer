@@ -1,0 +1,29 @@
+turn_off_appliance:
+  name: Turn off appliance
+  description: Turn off a specific appliance managed by the Power Load Balancer
+  fields:
+    entity_id:
+      required: true
+      selector:
+        entity: {}
+      description: The entity ID of the appliance to turn off
+    reason:
+      required: false
+      selector:
+        text: {}
+      description: Optional reason for turning off the appliance
+
+turn_on_appliance:
+  name: Turn on appliance
+  description: Turn on a specific appliance managed by the Power Load Balancer
+  fields:
+    entity_id:
+      required: true
+      selector:
+        entity: {}
+      description: The entity ID of the appliance to turn on
+    reason:
+      required: false
+      selector:
+        text: {}
+      description: Optional reason for turning on the appliance
