@@ -1,8 +1,8 @@
-# 🏠⚡ Power Load Balancer
+# Power Load Balancer
 
 A Home Assistant custom integration to prevent exceeding your household's power budget by automatically turning off less critical appliances based on real-time power consumption.
 
-## ✨ Features
+## Features
 
 -   Monitors the total house power consumption from a main sensor.
 -   Compares current usage against a configured power budget.
@@ -16,7 +16,7 @@ A Home Assistant custom integration to prevent exceeding your household's power 
 -   **Custom Services**: Enhanced `turn_on_appliance` and `turn_off_appliance` services with proper logging attribution.
 -   **Enhanced Logging**: Track all balancing actions with detailed event logs and clear attribution in HA logs.
 
-## ⚠️ Prerequisites
+## Prerequisites
 
 Before installing, ensure you have:
 
@@ -25,7 +25,7 @@ Before installing, ensure you have:
 -   Controllable switches or light entities integrated into Home Assistant for the appliances you want to manage.
 -   HACS (Home Assistant Community Store) is recommended for easier installation and updates.
 
-## 💾 Installation
+## Installation
 
 ### Via HACS (Recommended)
 
@@ -38,7 +38,7 @@ Before installing, ensure you have:
 7.  Click on the integration, then click **"Download"**.
 8.  Restart Home Assistant.
 
-## ⚙️ Configuration
+## Configuration
 
 After installation and restart:
 
@@ -48,46 +48,38 @@ After installation and restart:
 4.  Follow the steps in the configuration flow:
     *   **Main Configuration:**
         *   Select your **Main Power Sensor** (the sensor representing the total house consumption).
-        *   Enter your **Power Budget (Watt)**.
+        *   Enter your **Power Budget (Watt)**. It is recommended to set this slightly below your actual limit to avoid tripping breakers.
+        *   Optionally edit the **Cooldown Time** (defaults to 10 seconds) to prevent rapid toggling of appliances.
     *   **Add New Monitored Sensor:**
         *   Select a **Power Sensor** for a specific appliance or circuit you want to monitor.
         *   Optionally provide a **Name** for this configuration (defaults to the sensor's friendly name).
         *   Set the **Importance** (1 being highest priority to keep on, 10 being lowest priority).
         *   Check the **Last Resort** box if this appliance should only be turned off as a last resort.
         *   Select the **Controllable Appliance** (switch or light entity) associated with this sensor.
-        *   Optionally enter the **Assumed Power On Consumption (Watt)** for this appliance on startup.
+        *   Optionally overrdide the **Cooldown Time** for this specific appliance.
     *   You can add multiple monitored sensors and their associated appliances.
     *   You can remove configured sensors from the main configuration screen.
-    *   Select **"Finish Configuration"** when done.
+    *   Select **"Finish Configuration"** when done. Not selecting finish configuration at the end will result in no configuration being saved.
 
-## 🕹️ Usage
+## Usage
 
 Once configured, the integration will automatically monitor your power usage and trigger balancing actions when the budget is exceeded and balancing is enabled.
 
--   **Control Switch:** A switch entity named `switch.power_load_balancer_control_switch` (or similar depending on the automatic entity ID generation) will be created. You can use this switch to manually enable or disable the automatic load balancing function.
 -   **Event Log Sensor:** A sensor entity named `sensor.power_load_balancer_event_log` (or similar) will be created. The state will show the last balancing action, and the `events` attribute will contain a list of recent balancing events (e.g., when appliances were turned off).
 
-### 🔧 Custom Services
+### Custom Services
 
 The integration provides two enhanced services with better logging attribution:
 
 -   **`power_load_balancer.turn_off_appliance`**: Turn off an appliance with custom reason logging
 -   **`power_load_balancer.turn_on_appliance`**: Turn on an appliance with custom reason logging
 
-**Example usage:**
-```yaml
-service: power_load_balancer.turn_off_appliance
-data:
-  entity_id: switch.dishwasher
-  reason: "Power budget exceeded by 150W"
-```
 
 These services provide enhanced logging in Home Assistant's logbook and logs, making it easy to track all power management actions. These actions are not supposed to be used directly by the user but are used by the integration itself to manage appliances based on power budget constraints.
 
-## ❓ Troubleshooting
+## Troubleshooting
 
 -   **Balancing Not Happening:**
-    *   Check if the "Power Load Balancer Control" switch is turned **on**.
     *   Verify that your power sensors are reporting data correctly.
     *   Check the Home Assistant logs for any errors related to `power_load_balancer`.
     *   Check the "Power Load Balancer Log" sensor for any error messages or indications of actions taken.
@@ -97,15 +89,14 @@ These services provide enhanced logging in Home Assistant's logbook and logs, ma
     *   Check if the appliance was already turned off by the balancer (it won't try to turn it off again).
     *   Ensure the appliance is not marked as "Last Resort" if other, higher importance appliances are still on.
 
-## 🤝 Contributing
+## Contributing
 
 Contributions are welcome! If you find a bug or have an idea for a new feature, please open an issue or submit a pull request on the GitHub repository.
 
 ## Planned Features
-- [ ] Automatically turn back on devices
 - [ ] Support for solar energy in calculation
 
-## 📄 License
+## License
 
 This project is licensed under the [MIT License](LICENSE) - see the LICENSE file for details.
 
