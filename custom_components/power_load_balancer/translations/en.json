@@ -69,9 +69,10 @@
             "edit_main_sensor": {
                 "data": {
                     "main_power_sensor": "Main Power Sensor",
-                    "power_budget_watt": "Power Budget (Watt)"
+                    "power_budget_watt": "Power Budget (Watt)",
+                    "cooldown_seconds": "Cooldown Time (seconds)"
                 },
-                "description": "Configure the main power sensor and the total power budget.",
+                "description": "Configure the main power sensor, power budget, and the default cooldown time before appliances can turn back on after being turned off.",
                 "title": "Edit Main Sensor Settings",
                 "errors": {
                     "valid_budget_required": "Please enter a valid power budget (a positive integer)."
@@ -83,7 +84,8 @@
                     "name": "Custom Name (Optional)",
                     "importance": "Importance (1=Low, 10=High)",
                     "last_resort": "Last Resort (Turn off only if absolutely necessary)",
-                    "appliance": "Controllable Appliance (Switch or Light)"
+                    "appliance": "Controllable Appliance (Switch or Light)",
+                    "device_cooldown": "Device Cooldown Override (seconds, leave empty for default)"
                 },
                 "description": "Add a new power sensor to monitor and its corresponding controllable appliance.",
                 "title": "Add Monitored Sensor",
@@ -99,6 +101,7 @@
                     "importance": "Importance (1=Low, 10=High)",
                     "last_resort": "Last Resort (Turn off only if absolutely necessary)",
                     "appliance": "Controllable Appliance (Switch or Light)",
+                    "device_cooldown": "Device Cooldown Override (seconds, leave empty for default)",
                     "remove_sensor": "Remove Sensor"
                 },
                 "description": "Edit the settings for this monitored power sensor and its appliance.",
@@ -118,9 +121,10 @@
             "init": {
                 "data": {
                     "main_power_sensor": "Main Power Sensor",
-                    "power_budget_watt": "Power Budget (Watt)"
+                    "power_budget_watt": "Power Budget (Watt)",
+                    "cooldown_seconds": "Cooldown Time (seconds)"
                 },
-                "description": "Edit the main power sensor and total power budget.",
+                "description": "Edit the main power sensor, power budget, and cooldown settings.",
                 "title": "Edit Main Settings"
             },
             "sensor_menu": {
@@ -142,7 +146,8 @@
                     "name": "Custom Name (Optional)",
                     "importance": "Importance (1=Low, 10=High)",
                     "last_resort": "Last Resort (Turn off only if absolutely necessary)",
-                    "appliance": "Controllable Appliance (Switch or Light)"
+                    "appliance": "Controllable Appliance (Switch or Light)",
+                    "device_cooldown": "Device Cooldown Override (seconds, leave empty for default)"
                 },
                 "description": "Add a new power sensor to monitor and its corresponding controllable appliance.",
                 "title": "Add Monitored Sensor",
@@ -158,6 +163,7 @@
                     "importance": "Importance (1=Low, 10=High)",
                     "last_resort": "Last Resort (Turn off only if absolutely necessary)",
                     "appliance": "Controllable Appliance (Switch or Light)",
+                    "device_cooldown": "Device Cooldown Override (seconds, leave empty for default)",
                     "remove_sensor": "Remove Sensor"
                 },
                 "description": "Edit the settings for this monitored power sensor and its appliance.",
@@ -173,9 +179,10 @@
             "edit_main_sensor": {
                 "data": {
                     "main_power_sensor": "Main Power Sensor",
-                    "power_budget_watt": "Power Budget (Watt)"
+                    "power_budget_watt": "Power Budget (Watt)",
+                    "cooldown_seconds": "Cooldown Time (seconds)"
                 },
-                "description": "Edit the main power sensor and total power budget.",
+                "description": "Edit the main power sensor, power budget, and cooldown settings.",
                 "title": "Edit Main Sensor Settings"
             }
         }

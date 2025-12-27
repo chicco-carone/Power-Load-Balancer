@@ -1,12 +1,163 @@
-# https://www.home-assistant.io/integrations/default_config/
 default_config:
 
-# https://www.home-assistant.io/integrations/homeassistant/
 homeassistant:
   debug: true
 
-# https://www.home-assistant.io/integrations/logger/
 logger:
   default: info
   logs:
-    custom_components.integration_blueprint: debug
+    custom_components.power_load_balancer: debug
+    tuya: critical
+
+input_number:
+  appliance_1_power:
+    name: "Dishwasher Power"
+    initial: 0.0
+    min: 0.0
+    max: 3000.0
+    step: 10.0
+    unit_of_measurement: W
+    icon: mdi:dishwasher
+
+  appliance_2_power:
+    name: "Washing Machine Power"
+    initial: 0.0
+    min: 0.0
+    max: 2500.0
+    step: 10.0
+    unit_of_measurement: W
+    icon: mdi:washing-machine
+
+  appliance_3_power:
+    name: "Radiator Power"
+    initial: 0.0
+    min: 0.0
+    max: 2000.0
+    step: 10.0
+    unit_of_measurement: W
+    icon: mdi:radiator
+
+  additional_house_power:
+    name: "Other House Loads"
+    initial: 0.0
+    min: 0.0
+    max: 10000.0
+    step: 10.0
+    unit_of_measurement: W
+    icon: mdi:home-plus
+
+input_boolean:
+  appliance_1_switch:
+    name: "Dishwasher"
+    icon: mdi:dishwasher
+
+  appliance_2_switch:
+    name: "Washing Machine"
+    icon: mdi:washing-machine
+
+  appliance_3_switch:
+    name: "Radiator"
+    icon: mdi:radiator
+
+template:
+  - sensor:
+      - name: "Dishwasher Power"
+        unique_id: "appliance_1_power_sensor"
+        state: >-
+          {% if is_state('input_boolean.appliance_1_switch', 'on') %}
+            {{ states('input_number.appliance_1_power') | float(0) }}
+          {% else %} 0 {% endif %}
+        unit_of_measurement: W
+        device_class: power
+        state_class: measurement
+        icon: "mdi:flash"
+
+      - name: "Washing Machine Power"
+        unique_id: "appliance_2_power_sensor"
+        state: >-
+          {% if is_state('input_boolean.appliance_2_switch', 'on') %}
+            {{ states('input_number.appliance_2_power') | float(0) }}
+          {% else %} 0 {% endif %}
+        unit_of_measurement: W
+        device_class: power
+        state_class: measurement
+        icon: "mdi:flash"
+
+      - name: "Radiator Power"
+        unique_id: "appliance_3_power_sensor"
+        state: >-
+          {% if is_state('input_boolean.appliance_3_switch', 'on') %}
+            {{ states('input_number.appliance_3_power') | float(0) }}
+          {% else %} 0 {% endif %}
+        unit_of_measurement: W
+        device_class: power
+        state_class: measurement
+        icon: "mdi:flash"
+
+      - name: "Total House Power"
+        unique_id: "total_house_power_main"
+        state: >-
+          {% set base = (
+            (states('sensor.appliance_1_power_sensor') | float(0)) +
+            (states('sensor.appliance_2_power_sensor') | float(0)) +
+            (states('sensor.appliance_3_power_sensor') | float(0)) +
+            (states('input_number.additional_house_power') | float(0))
+          ) %}
+          {% set others = expand(states.sensor)
+            | selectattr('attributes.device_class', 'defined')
+            | selectattr('attributes.device_class', 'equalto', 'power')
+            | rejectattr('entity_id', 'in', [
+                'sensor.appliance_1_power_sensor',
+                'sensor.appliance_2_power_sensor',
+                'sensor.appliance_3_power_sensor',
+                'sensor.potenza_totale_casa',
+                'sensor.total_house_power_main'
+              ])
+            | map(attribute='state')
+            | map('float', 0)
+            | sum %}
+          {{ base + others }}
+        unit_of_measurement: W
+        device_class: power
+        state_class: measurement
+        icon: "mdi:home-lightning-bolt"
+
+  - switch:
+      - default_entity_id: switch.appliance_1
+        name: "Dishwasher"
+        state: "{{ is_state('input_boolean.appliance_1_switch', 'on') }}"
+        icon: "mdi:dishwasher"
+        turn_on:
+          - action: input_boolean.turn_on
+            target:
+              entity_id: input_boolean.appliance_1_switch
+        turn_off:
+          - action: input_boolean.turn_off
+            target:
+              entity_id: input_boolean.appliance_1_switch
+
+      - default_entity_id: switch.appliance_2
+        name: "Washing Machine"
+        state: "{{ is_state('input_boolean.appliance_2_switch', 'on') }}"
+        icon: "mdi:washing-machine"
+        turn_on:
+          - action: input_boolean.turn_on
+            target:
+              entity_id: input_boolean.appliance_2_switch
+        turn_off:
+          - action: input_boolean.turn_off
+            target:
+              entity_id: input_boolean.appliance_2_switch
+
+      - default_entity_id: switch.appliance_3
+        name: "Radiator"
+        state: "{{ is_state('input_boolean.appliance_3_switch', 'on') }}"
+        icon: "mdi:radiator"
+        turn_on:
+          - action: input_boolean.turn_on
+            target:
+              entity_id: input_boolean.appliance_3_switch
+        turn_off:
+          - action: input_boolean.turn_off
+            target:
+              entity_id: input_boolean.appliance_3_switch

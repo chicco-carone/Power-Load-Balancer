@@ -1,9 +1,14 @@
-"""Config flow for Power Load Balancer integration."""
+"""
+Config flow for Power Load Balancer integration.
+
+This module handles the configuration UI for setting up the Power Load Balancer,
+including the main power sensor configuration and monitored appliance setup.
+"""
 
 from __future__ import annotations
 
 import logging
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import voluptuous as vol
 from homeassistant.config_entries import (
@@ -13,7 +18,6 @@ from homeassistant.config_entries import (
     OptionsFlow,
 )
 from homeassistant.const import CONF_ENTITY_ID, CONF_NAME
-from homeassistant.core import callback
 from homeassistant.helpers.selector import (
     EntitySelector,
     EntitySelectorConfig,
@@ -24,50 +28,280 @@ from homeassistant.helpers.selector import (
     TextSelectorConfig,
 )
 
-from .const import DOMAIN
+from .const import (
+    CONF_APPLIANCE,
+    CONF_COOLDOWN_SECONDS,
+    CONF_DEVICE_COOLDOWN,
+    CONF_IMPORTANCE,
+    CONF_LAST_RESORT,
+    CONF_MAIN_POWER_SENSOR,
+    CONF_POWER_BUDGET_WATT,
+    CONF_POWER_SENSORS,
+    DEFAULT_COOLDOWN_SECONDS,
+    DOMAIN,
+)
+
+if TYPE_CHECKING:
+    from homeassistant.core import HomeAssistant
+    from homeassistant.helpers.device_registry import DeviceRegistry
+    from homeassistant.helpers.entity_registry import EntityRegistry
+
+try:
+    from homeassistant.helpers.device_registry import (
+        async_get as async_get_device_registry,
+    )
+    from homeassistant.helpers.entity_registry import (
+        async_get as async_get_entity_registry,
+    )
+except ImportError:
+    async_get_device_registry = None
+    async_get_entity_registry = None
 
 _LOGGER = logging.getLogger(__name__)
 
+DEFAULT_IMPORTANCE = 5
 
-CONF_MAIN_POWER_SENSOR: str = "main_power_sensor"
-CONF_POWER_SENSORS: str = "power_sensors"
-CONF_POWER_BUDGET_WATT: str = "power_budget_watt"
-CONF_APPLIANCE: str = "appliance"
-CONF_IMPORTANCE: str = "importance"
-CONF_LAST_RESORT: str = "last_resort"
 
-STEP_MAIN_CONFIG: str = "main_config"
-STEP_ADD_OR_EDIT_SENSOR: str = "add_or_edit_sensor"
-STEP_REMOVE_SENSOR: str = "remove_sensor"
+def _get_power_sensor_selector() -> EntitySelector:
+    """Return the entity selector for power sensors."""
+    return EntitySelector(EntitySelectorConfig(domain="sensor", device_class="power"))
 
-STEP_MAIN_CONFIG_BASE_SCHEMA: vol.Schema = vol.Schema(
-    {
-        vol.Required(CONF_MAIN_POWER_SENSOR): EntitySelector(
-            EntitySelectorConfig(domain="sensor", device_class="power")
-        ),
-        vol.Required(CONF_POWER_BUDGET_WATT): int,
+
+def _get_appliance_selector() -> EntitySelector:
+    """Return the entity selector for controllable appliances."""
+    return EntitySelector(EntitySelectorConfig(domain=["switch", "light"]))
+
+
+def _build_sensor_edit_schema(initial_data: dict[str, Any]) -> vol.Schema:
+    """
+    Build a schema for editing a sensor configuration.
+
+    Args:
+        initial_data: Current values to use as defaults.
+
+    Returns:
+        A voluptuous schema with the current values as defaults.
+
+    """
+    schema_dict: dict[Any, Any] = {}
+
+    entity_id = initial_data.get(CONF_ENTITY_ID)
+    if entity_id is not None:
+        schema_dict[vol.Required(CONF_ENTITY_ID, default=entity_id)] = (
+            _get_power_sensor_selector()
+        )
+    else:
+        schema_dict[vol.Required(CONF_ENTITY_ID)] = _get_power_sensor_selector()
+
+    name = initial_data.get(CONF_NAME)
+    if name is not None:
+        schema_dict[vol.Optional(CONF_NAME, default=name)] = TextSelector(
+            TextSelectorConfig()
+        )
+    else:
+        schema_dict[vol.Optional(CONF_NAME)] = TextSelector(TextSelectorConfig())
+
+    importance = initial_data.get(CONF_IMPORTANCE, DEFAULT_IMPORTANCE)
+    schema_dict[vol.Required(CONF_IMPORTANCE, default=importance)] = NumberSelector(
+        NumberSelectorConfig(min=1, max=10, mode=NumberSelectorMode.SLIDER)
+    )
+
+    last_resort = initial_data.get(CONF_LAST_RESORT, False)
+    schema_dict[vol.Required(CONF_LAST_RESORT, default=last_resort)] = bool
+
+    appliance = initial_data.get(CONF_APPLIANCE)
+    if appliance is not None:
+        schema_dict[vol.Required(CONF_APPLIANCE, default=appliance)] = (
+            _get_appliance_selector()
+        )
+    else:
+        schema_dict[vol.Required(CONF_APPLIANCE)] = _get_appliance_selector()
+
+    device_cooldown = initial_data.get(CONF_DEVICE_COOLDOWN)
+    schema_dict[vol.Optional(CONF_DEVICE_COOLDOWN, default=device_cooldown)] = (
+        NumberSelector(
+            NumberSelectorConfig(
+                min=0,
+                max=3600,
+                step=1,
+                mode=NumberSelectorMode.BOX,
+                unit_of_measurement="s",
+            )
+        )
+    )
+
+    schema_dict[vol.Optional("remove_sensor")] = bool
+
+    return vol.Schema(schema_dict)
+
+
+def _get_friendly_name_for_entity(hass: HomeAssistant, entity_id: str) -> str | None:
+    """
+    Return a friendly name for the device connected to the given sensor.
+
+    Tries to get the device name from the device registry.
+    Falls back to the entity's original_name or name.
+
+    Args:
+        hass: Home Assistant instance.
+        entity_id: The entity ID to look up.
+
+    Returns:
+        A friendly name string, or None if unavailable.
+
+    """
+    if async_get_device_registry is None or async_get_entity_registry is None:
+        return None
+
+    entity_registry: EntityRegistry | None = async_get_entity_registry(hass)
+    if entity_registry is None:
+        return None
+
+    entity = entity_registry.entities.get(str(entity_id))
+    if entity is None:
+        return None
+
+    result: str | None = None
+
+    if entity.device_id:
+        device_registry: DeviceRegistry | None = async_get_device_registry(hass)
+        if device_registry is not None:
+            device = device_registry.devices.get(entity.device_id)
+            if device is not None and device.name:
+                result = device.name
+
+    if result is None and hasattr(entity, "original_name") and entity.original_name:
+        result = entity.original_name
+
+    if result is None and hasattr(entity, "name") and entity.name:
+        result = entity.name
+
+    return result
+
+
+def _build_menu_options(
+    config_data: dict[str, Any],
+    *,
+    include_finish: bool = True,
+) -> dict[str, str]:
+    """
+    Build the menu options for the config flow.
+
+    Args:
+        config_data: Current configuration data.
+        include_finish: Whether to include the finish option.
+
+    Returns:
+        Dictionary mapping action keys to display labels.
+
+    """
+    options: dict[str, str] = {}
+
+    main_sensor_text = (
+        "Edit Main Sensor Settings"
+        if config_data.get(CONF_MAIN_POWER_SENSOR)
+        else "Configure Main Sensor"
+    )
+    options["edit_main_sensor"] = main_sensor_text
+    options["add_sensor"] = "Add New Monitored Sensor"
+
+    configured_sensors: list[dict[str, Any]] = config_data.get(CONF_POWER_SENSORS, [])
+    for i, sensor_config in enumerate(configured_sensors):
+        sensor_name = sensor_config.get(CONF_NAME) or sensor_config.get(
+            CONF_ENTITY_ID, f"Sensor {i + 1}"
+        )
+        options[f"edit_sensor_{i}"] = f"Edit: {sensor_name}"
+
+    if include_finish:
+        options["finish"] = "Save Configuration"
+
+    return options
+
+
+def _process_sensor_input(
+    hass: HomeAssistant,
+    user_input: dict[str, Any],
+) -> tuple[dict[str, str], dict[str, Any] | None]:
+    """
+    Process and validate sensor input.
+
+    Args:
+        hass: Home Assistant instance.
+        user_input: User input dictionary.
+
+    Returns:
+        Tuple of (errors dict, processed sensor config or None if errors).
+
+    """
+    errors: dict[str, str] = {}
+
+    sensor_entity_id = user_input.get(CONF_ENTITY_ID)
+    appliance_entity_id = user_input.get(CONF_APPLIANCE)
+    custom_name = user_input.get(CONF_NAME)
+
+    if not sensor_entity_id:
+        errors[CONF_ENTITY_ID] = "select_sensor_required"
+    if not appliance_entity_id:
+        errors[CONF_APPLIANCE] = "select_appliance_required"
+
+    if errors:
+        return errors, None
+
+    friendly_name = _get_friendly_name_for_entity(hass, str(sensor_entity_id))
+    if custom_name:
+        name_to_use = str(custom_name)
+    elif friendly_name:
+        name_to_use = friendly_name
+    else:
+        name_to_use = str(sensor_entity_id)
+
+    device_cooldown = user_input.get(CONF_DEVICE_COOLDOWN)
+    if device_cooldown is not None and device_cooldown <= 0:
+        device_cooldown = None
+
+    sensor_config: dict[str, Any] = {
+        CONF_ENTITY_ID: sensor_entity_id,
+        CONF_NAME: name_to_use,
+        CONF_IMPORTANCE: user_input.get(CONF_IMPORTANCE, DEFAULT_IMPORTANCE),
+        CONF_LAST_RESORT: user_input.get(CONF_LAST_RESORT, False),
+        CONF_APPLIANCE: appliance_entity_id,
     }
-)
 
-STEP_ADD_OR_EDIT_SENSOR_SCHEMA: vol.Schema = vol.Schema(
+    if device_cooldown is not None:
+        sensor_config[CONF_DEVICE_COOLDOWN] = int(device_cooldown)
+
+    return errors, sensor_config
+
+
+STEP_ADD_SENSOR_SCHEMA: vol.Schema = vol.Schema(
     {
-        vol.Required(CONF_ENTITY_ID): EntitySelector(
-            EntitySelectorConfig(domain="sensor", device_class="power")
-        ),
+        vol.Required(CONF_ENTITY_ID): _get_power_sensor_selector(),
         vol.Optional(CONF_NAME): TextSelector(TextSelectorConfig()),
-        vol.Required(CONF_IMPORTANCE, default=5): NumberSelector(
+        vol.Required(CONF_IMPORTANCE, default=DEFAULT_IMPORTANCE): NumberSelector(
             NumberSelectorConfig(min=1, max=10, mode=NumberSelectorMode.SLIDER)
         ),
         vol.Required(CONF_LAST_RESORT, default=False): bool,
-        vol.Required(CONF_APPLIANCE): EntitySelector(
-            EntitySelectorConfig(domain=["switch", "light"])
+        vol.Required(CONF_APPLIANCE): _get_appliance_selector(),
+        vol.Optional(CONF_DEVICE_COOLDOWN): NumberSelector(
+            NumberSelectorConfig(
+                min=0,
+                max=3600,
+                step=1,
+                mode=NumberSelectorMode.BOX,
+                unit_of_measurement="s",
+            )
         ),
     }
 )
 
 
 class PowerLoadBalancerConfigFlow(ConfigFlow, domain=DOMAIN):
-    """Handle a config flow for Power Load Balancer."""
+    """
+    Handle a config flow for Power Load Balancer.
+
+    This class manages the initial setup flow for the integration,
+    guiding users through main sensor configuration and appliance setup.
+    """
 
     VERSION: int = 1
     _config_data: dict[str, Any]
@@ -76,7 +310,16 @@ class PowerLoadBalancerConfigFlow(ConfigFlow, domain=DOMAIN):
         self,
         user_input: dict[str, object] | None = None,
     ) -> ConfigFlowResult:
-        """Handle the initial configuration step and show the main menu."""
+        """
+        Handle the initial configuration step and show the main menu.
+
+        Args:
+            user_input: User input from the form, or None on first display.
+
+        Returns:
+            ConfigFlowResult directing to the next step or completing setup.
+
+        """
         _LOGGER.debug(
             "Opening config flow step: async_step_user, user_input=%s", user_input
         )
@@ -91,9 +334,9 @@ class PowerLoadBalancerConfigFlow(ConfigFlow, domain=DOMAIN):
                 return await self.async_step_edit_main_sensor()
             if action == "add_sensor":
                 return await self.async_step_add_sensor()
-            if action and action.startswith("edit_sensor_"):
+            if action and str(action).startswith("edit_sensor_"):
                 try:
-                    sensor_index = int(action.replace("edit_sensor_", ""))
+                    sensor_index = int(str(action).replace("edit_sensor_", ""))
                     return await self.async_step_edit_sensor(sensor_index=sensor_index)
                 except ValueError:
                     errors["base"] = "invalid_edit_action"
@@ -105,22 +348,7 @@ class PowerLoadBalancerConfigFlow(ConfigFlow, domain=DOMAIN):
                         title="Power Load Balancer", data=self._config_data
                     )
 
-        options: dict[str, str] = {}
-        main_sensor_text = (
-            "Edit Main Sensor Settings"
-            if self._config_data.get(CONF_MAIN_POWER_SENSOR)
-            else "Configure Main Sensor"
-        )
-        options["edit_main_sensor"] = main_sensor_text
-        options["add_sensor"] = "Add New Monitored Sensor"
-
-        configured_sensors = self._config_data.get(CONF_POWER_SENSORS, [])
-        for i, sensor_config in enumerate(configured_sensors):
-            sensor_name = sensor_config.get(CONF_NAME) or sensor_config.get(
-                CONF_ENTITY_ID, f"Sensor {i + 1}"
-            )
-            options[f"edit_sensor_{i}"] = f"Edit: {sensor_name}"
-
+        options = _build_menu_options(self._config_data)
         options["finish"] = "Finish Configuration"
 
         return self.async_show_form(
@@ -129,131 +357,31 @@ class PowerLoadBalancerConfigFlow(ConfigFlow, domain=DOMAIN):
             errors=errors,
         )
 
-    @callback
-    def _get_main_config_schema(self) -> vol.Schema:
-        """Generate the schema for the main config step using vol.In and static labels."""
-        options: dict[str, str] = {
-            "edit_main_sensor": "Configure Main Sensor"
-            if not self._config_data.get(CONF_MAIN_POWER_SENSOR)
-            else "Edit Main Sensor Settings",
-            "add_sensor": "Add New Monitored Sensor",
-            "finish": "Finish Configuration",
-        }
-
-        configured_sensors: list[dict[str, Any]] = self._config_data.get(
-            CONF_POWER_SENSORS, []
-        )
-
-        for i, sensor_config in enumerate(configured_sensors):
-            sensor_name = sensor_config.get(CONF_NAME) or sensor_config.get(
-                CONF_ENTITY_ID, f"Sensor {i + 1}"
-            )
-            options[f"edit_sensor_{i}"] = f"Edit: {sensor_name}"
-        return vol.Schema({vol.Required("action"): vol.In(options)})
-
     @staticmethod
     def async_get_options_flow(config_entry: ConfigEntry) -> OptionsFlow:
-        """Provide an options flow handler for editing existing configuration data."""
+        """Provide an options flow handler for editing existing configuration."""
         return PowerLoadBalancerOptionsFlow(config_entry)
-
-    async def async_step_main_config(
-        self, user_input: dict[str, object] | None = None
-    ) -> ConfigFlowResult:
-        """Handle the main configuration screen with radio buttons and actions."""
-        _LOGGER.debug(
-            "Opening config flow step: async_step_main_config, user_input=%s",
-            user_input,
-        )
-        errors: dict[str, str] = {}
-
-        def _validate_finish() -> str | None:
-            """Validate the data needed to complete the configuration."""
-            if not self._config_data.get(CONF_MAIN_POWER_SENSOR):
-                return "main_sensor_required"
-            budget = self._config_data.get(CONF_POWER_BUDGET_WATT)
-            if budget is None or not isinstance(budget, int) or budget <= 0:
-                return "valid_budget_required"
-            return None
-
-        if user_input is not None:
-            action: str | None = user_input.get("action")
-            if action == "edit_main_sensor":
-                return await self.async_step_edit_main_sensor()
-            if action == "add_sensor":
-                return await self.async_step_add_sensor()
-            if action and action.startswith("edit_sensor_"):
-                try:
-                    sensor_index = int(action.replace("edit_sensor_", ""))
-                    return await self.async_step_edit_sensor(sensor_index=sensor_index)
-                except ValueError:
-                    errors["base"] = "invalid_edit_action"
-            elif action == "finish":
-                err = _validate_finish()
-                if err:
-                    errors["base"] = err
-                else:
-                    return self.async_create_entry(
-                        title="Power Load Balancer", data=self._config_data
-                    )
-
-        if not hasattr(self, "_config_data"):
-            self._config_data = {CONF_POWER_SENSORS: []}
-
-        data_schema: vol.Schema = self._get_main_config_schema()
-        return self.async_show_form(
-            step_id=STEP_MAIN_CONFIG,
-            data_schema=data_schema,
-            errors=errors,
-            last_step=False,
-        )
 
     async def async_step_edit_main_sensor(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
         """
-        Show form to add or edit the main sensor.
+        Show form to add or edit the main sensor configuration.
 
-        Pre-filling with previous values if present.
+        Args:
+            user_input: User input from the form, or None on first display.
+
+        Returns:
+            ConfigFlowResult with form or directing to next step.
+
         """
         _LOGGER.debug(
             "Opening config flow step: async_step_edit_main_sensor, user_input=%s",
             user_input,
         )
         errors: dict[str, str] = {}
-        initial: dict[str, object] = {}
-        if hasattr(self, "_config_data"):
-            if self._config_data.get(CONF_MAIN_POWER_SENSOR) is not None:
-                initial[CONF_MAIN_POWER_SENSOR] = self._config_data[
-                    CONF_MAIN_POWER_SENSOR
-                ]
-            if self._config_data.get(CONF_POWER_BUDGET_WATT) is not None:
-                initial[CONF_POWER_BUDGET_WATT] = self._config_data[
-                    CONF_POWER_BUDGET_WATT
-                ]
-        schema_dict: dict[object, object] = {}
-        if CONF_MAIN_POWER_SENSOR in initial:
-            schema_dict[
-                vol.Required(
-                    CONF_MAIN_POWER_SENSOR, default=initial[CONF_MAIN_POWER_SENSOR]
-                )
-            ] = EntitySelector(
-                EntitySelectorConfig(domain="sensor", device_class="power")
-            )
-        else:
-            schema_dict[vol.Required(CONF_MAIN_POWER_SENSOR)] = EntitySelector(
-                EntitySelectorConfig(domain="sensor", device_class="power")
-            )
-        if CONF_POWER_BUDGET_WATT in initial:
-            schema_dict[
-                vol.Required(
-                    CONF_POWER_BUDGET_WATT, default=initial[CONF_POWER_BUDGET_WATT]
-                )
-            ] = int
-        else:
-            schema_dict[vol.Required(CONF_POWER_BUDGET_WATT)] = int
-        data_schema = vol.Schema(schema_dict)
+
         if user_input is not None:
-            main_sensor = user_input.get(CONF_MAIN_POWER_SENSOR)
             power_budget = user_input.get(CONF_POWER_BUDGET_WATT)
             if (
                 power_budget is None
@@ -262,61 +390,91 @@ class PowerLoadBalancerConfigFlow(ConfigFlow, domain=DOMAIN):
             ):
                 errors[CONF_POWER_BUDGET_WATT] = "valid_budget_required"
             if not errors:
-                self._config_data[CONF_MAIN_POWER_SENSOR] = main_sensor
+                self._config_data[CONF_MAIN_POWER_SENSOR] = user_input[
+                    CONF_MAIN_POWER_SENSOR
+                ]
                 self._config_data[CONF_POWER_BUDGET_WATT] = power_budget
-                return await self.async_step_main_config()
+                cooldown = user_input.get(CONF_COOLDOWN_SECONDS)
+                if cooldown is not None:
+                    self._config_data[CONF_COOLDOWN_SECONDS] = int(cooldown)
+                else:
+                    self._config_data[CONF_COOLDOWN_SECONDS] = DEFAULT_COOLDOWN_SECONDS
+                return await self.async_step_user()
+
+        schema_dict: dict[Any, Any] = {}
+        current_sensor = self._config_data.get(CONF_MAIN_POWER_SENSOR)
+        current_budget = self._config_data.get(CONF_POWER_BUDGET_WATT)
+        current_cooldown = self._config_data.get(
+            CONF_COOLDOWN_SECONDS, DEFAULT_COOLDOWN_SECONDS
+        )
+
+        if current_sensor is not None:
+            schema_dict[
+                vol.Required(CONF_MAIN_POWER_SENSOR, default=current_sensor)
+            ] = _get_power_sensor_selector()
+        else:
+            schema_dict[vol.Required(CONF_MAIN_POWER_SENSOR)] = (
+                _get_power_sensor_selector()
+            )
+
+        if current_budget is not None:
+            schema_dict[
+                vol.Required(CONF_POWER_BUDGET_WATT, default=current_budget)
+            ] = int
+        else:
+            schema_dict[vol.Required(CONF_POWER_BUDGET_WATT)] = int
+
+        schema_dict[vol.Required(CONF_COOLDOWN_SECONDS, default=current_cooldown)] = (
+            NumberSelector(
+                NumberSelectorConfig(
+                    min=1,
+                    max=3600,
+                    step=1,
+                    mode=NumberSelectorMode.BOX,
+                    unit_of_measurement="s",
+                )
+            )
+        )
+
         return self.async_show_form(
             step_id="edit_main_sensor",
-            data_schema=data_schema,
+            data_schema=vol.Schema(schema_dict),
             errors=errors,
-            description_placeholders=initial,
         )
 
     async def async_step_add_sensor(
         self, user_input: dict[str, object] | None = None
     ) -> ConfigFlowResult:
-        """Show form to add a new monitored power sensor."""
+        """
+        Show form to add a new monitored power sensor.
+
+        Args:
+            user_input: User input from the form, or None on first display.
+
+        Returns:
+            ConfigFlowResult with form or directing to next step.
+
+        """
         _LOGGER.debug(
             "Opening config flow step: async_step_add_sensor, user_input=%s",
             user_input,
         )
         errors: dict[str, str] = {}
+
         if user_input is not None:
-            sensor_entity_id = user_input.get(CONF_ENTITY_ID)
-            appliance_entity_id = user_input.get(CONF_APPLIANCE)
-            custom_name = user_input.get(CONF_NAME)
-            if not sensor_entity_id:
-                errors[CONF_ENTITY_ID] = "select_sensor_required"
-            if not appliance_entity_id:
-                errors[CONF_APPLIANCE] = "select_appliance_required"
-            if not errors:
-                friendly_name = self._get_friendly_name(sensor_entity_id)  # type: ignore[arg-type]
-                if custom_name:
-                    name_to_use = custom_name
-                elif friendly_name:
-                    name_to_use = friendly_name
-                else:
-                    name_to_use = str(sensor_entity_id)
-                new_sensor_config = {
-                    CONF_ENTITY_ID: sensor_entity_id,
-                    CONF_NAME: name_to_use,
-                    CONF_IMPORTANCE: user_input.get(CONF_IMPORTANCE, 5),
-                    CONF_LAST_RESORT: user_input.get(CONF_LAST_RESORT, False),
-                    CONF_APPLIANCE: appliance_entity_id,
-                }
+            errors, sensor_config = _process_sensor_input(self.hass, dict(user_input))
+            if not errors and sensor_config:
                 if CONF_POWER_SENSORS not in self._config_data or not isinstance(
                     self._config_data[CONF_POWER_SENSORS], list
                 ):
                     self._config_data[CONF_POWER_SENSORS] = []
-                self._config_data[CONF_POWER_SENSORS].append(new_sensor_config)
-                return await self.async_step_main_config()
-        initial_data: dict[str, object] = {}
-        schema = STEP_ADD_OR_EDIT_SENSOR_SCHEMA
+                self._config_data[CONF_POWER_SENSORS].append(sensor_config)
+                return await self.async_step_user()
+
         return self.async_show_form(
             step_id="add_sensor",
-            data_schema=schema,
+            data_schema=STEP_ADD_SENSOR_SCHEMA,
             errors=errors,
-            description_placeholders=initial_data,
         )
 
     async def async_step_edit_sensor(
@@ -324,159 +482,76 @@ class PowerLoadBalancerConfigFlow(ConfigFlow, domain=DOMAIN):
         user_input: dict[str, object] | None = None,
         sensor_index: int | None = None,
     ) -> ConfigFlowResult:
-        """Show form to edit an existing monitored power sensor in options flow."""
+        """
+        Show form to edit an existing monitored power sensor.
+
+        Args:
+            user_input: User input from the form, or None on first display.
+            sensor_index: Index of the sensor to edit in the sensors list.
+
+        Returns:
+            ConfigFlowResult with form or directing to next step.
+
+        """
         _LOGGER.debug(
-            (
-                "Opening config flow step: async_step_edit_sensor, "
-                "user_input=%s, sensor_index=%s"
-            ),
+            "Opening config flow step: async_step_edit_sensor, "
+            "user_input=%s, sensor_index=%s",
             user_input,
             sensor_index,
         )
         errors: dict[str, str] = {}
-        sensors: list[dict[str, object]] = self._config_data.get(CONF_POWER_SENSORS, [])
+        sensors: list[dict[str, Any]] = self._config_data.get(CONF_POWER_SENSORS, [])
+
         if sensor_index is None or sensor_index < 0 or sensor_index >= len(sensors):
             return self.async_abort(reason="invalid_sensor_index")
-        current_sensor_config: dict[str, object] = sensors[sensor_index]
+
+        current_sensor_config = sensors[sensor_index]
+
         if user_input is not None:
             if user_input.get("remove_sensor"):
                 del self._config_data[CONF_POWER_SENSORS][sensor_index]
-                return await self.async_step_sensor_menu()
-            sensor_entity_id = user_input.get(CONF_ENTITY_ID)
-            appliance_entity_id = user_input.get(CONF_APPLIANCE)
-            custom_name = user_input.get(CONF_NAME)
-            if not sensor_entity_id:
-                errors[CONF_ENTITY_ID] = "select_sensor_required"
-            if not appliance_entity_id:
-                errors[CONF_APPLIANCE] = "select_appliance_required"
-            if not errors:
-                friendly_name = self._get_friendly_name(sensor_entity_id)
-                if custom_name:
-                    name_to_use = custom_name
-                elif friendly_name:
-                    name_to_use = friendly_name
-                else:
-                    name_to_use = str(sensor_entity_id)
-                new_sensor_config = {
-                    CONF_ENTITY_ID: sensor_entity_id,
-                    CONF_NAME: name_to_use,
-                    CONF_IMPORTANCE: user_input.get(CONF_IMPORTANCE, 5),
-                    CONF_LAST_RESORT: user_input.get(CONF_LAST_RESORT, False),
-                    CONF_APPLIANCE: appliance_entity_id,
-                }
-                self._config_data[CONF_POWER_SENSORS][sensor_index] = new_sensor_config
-                return await self.async_step_sensor_menu()
-        initial_data: dict[str, object] = {
+                return await self.async_step_user()
+
+            errors, sensor_config = _process_sensor_input(self.hass, dict(user_input))
+            if not errors and sensor_config:
+                self._config_data[CONF_POWER_SENSORS][sensor_index] = sensor_config
+                return await self.async_step_user()
+
+        initial_data = {
             CONF_ENTITY_ID: current_sensor_config.get(CONF_ENTITY_ID),
             CONF_NAME: current_sensor_config.get(CONF_NAME),
-            CONF_IMPORTANCE: current_sensor_config.get(CONF_IMPORTANCE, 5),
+            CONF_IMPORTANCE: current_sensor_config.get(
+                CONF_IMPORTANCE, DEFAULT_IMPORTANCE
+            ),
             CONF_LAST_RESORT: current_sensor_config.get(CONF_LAST_RESORT, False),
             CONF_APPLIANCE: current_sensor_config.get(CONF_APPLIANCE),
+            CONF_DEVICE_COOLDOWN: current_sensor_config.get(CONF_DEVICE_COOLDOWN),
         }
-        schema_dict: dict[object, object] = {}
-        if initial_data[CONF_ENTITY_ID] is not None:
-            schema_dict[
-                vol.Required(CONF_ENTITY_ID, default=initial_data[CONF_ENTITY_ID])
-            ] = EntitySelector(
-                EntitySelectorConfig(domain="sensor", device_class="power")
-            )
-        else:
-            schema_dict[vol.Required(CONF_ENTITY_ID)] = EntitySelector(
-                EntitySelectorConfig(domain="sensor", device_class="power")
-            )
-        if initial_data[CONF_NAME] is not None:
-            schema_dict[vol.Optional(CONF_NAME, default=initial_data[CONF_NAME])] = (
-                TextSelector(TextSelectorConfig())
-            )
-        else:
-            schema_dict[vol.Optional(CONF_NAME)] = TextSelector(TextSelectorConfig())
-        if initial_data[CONF_IMPORTANCE] is not None:
-            schema_dict[
-                vol.Required(CONF_IMPORTANCE, default=initial_data[CONF_IMPORTANCE])
-            ] = NumberSelector(
-                NumberSelectorConfig(min=1, max=10, mode=NumberSelectorMode.SLIDER)
-            )
-        else:
-            schema_dict[vol.Required(CONF_IMPORTANCE, default=5)] = NumberSelector(
-                NumberSelectorConfig(min=1, max=10, mode=NumberSelectorMode.SLIDER)
-            )
-        if initial_data[CONF_LAST_RESORT] is not None:
-            schema_dict[
-                vol.Required(CONF_LAST_RESORT, default=initial_data[CONF_LAST_RESORT])
-            ] = bool
-        else:
-            schema_dict[vol.Required(CONF_LAST_RESORT, default=False)] = bool
-        if initial_data[CONF_APPLIANCE] is not None:
-            schema_dict[
-                vol.Required(CONF_APPLIANCE, default=initial_data[CONF_APPLIANCE])
-            ] = EntitySelector(EntitySelectorConfig(domain=["switch", "light"]))
-        else:
-            schema_dict[vol.Required(CONF_APPLIANCE)] = EntitySelector(
-                EntitySelectorConfig(domain=["switch", "light"])
-            )
-        schema_dict[vol.Optional("remove_sensor")] = bool
-        schema = vol.Schema(schema_dict)
+
         return self.async_show_form(
             step_id="edit_sensor",
-            data_schema=schema,
+            data_schema=_build_sensor_edit_schema(initial_data),
             errors=errors,
-            description_placeholders=initial_data,
             last_step=False,
         )
 
-    def _get_friendly_name(self, entity_id: str) -> str | None:
-        """
-        Return a friendly name for the device connected to the given sensor entity_id.
-
-        This method tries to get the device name from the device registry.
-        If not available, it falls back to the entity's original_name or name.
-        """
-        try:
-            from homeassistant.helpers.device_registry import (
-                async_get as async_get_device_registry,
-            )
-            from homeassistant.helpers.entity_registry import (
-                async_get as async_get_entity_registry,
-            )
-        except ImportError:
-            result: str | None = None
-            return result
-        hass = getattr(self, "hass", None)
-        if hass is None:
-            return None
-        entity_registry = async_get_entity_registry(hass)
-        if entity_registry is None:
-            return None
-        entity = entity_registry.entities.get(str(entity_id))
-        device_name: str | None = None
-        if entity is not None and entity.device_id:
-            device_registry = async_get_device_registry(hass)
-            if device_registry is not None:
-                device = device_registry.devices.get(entity.device_id)
-                if device is not None and device.name:
-                    device_name = device.name
-        if device_name is not None:
-            return device_name
-        entity_original_name: str | None = None
-        if (
-            entity is not None
-            and hasattr(entity, "original_name")
-            and entity.original_name
-        ):
-            entity_original_name = entity.original_name
-        if entity_original_name is not None:
-            return entity_original_name
-        entity_name: str | None = None
-        if entity is not None and hasattr(entity, "name") and entity.name:
-            entity_name = entity.name
-        return entity_name
-
 
 class PowerLoadBalancerOptionsFlow(OptionsFlow):
-    """Options flow to reconfigure Power Load Balancer after initial setup."""
+    """
+    Options flow to reconfigure Power Load Balancer after initial setup.
+
+    This class handles reconfiguration of an existing integration instance,
+    allowing users to modify sensors, power budgets, and monitored appliances.
+    """
 
     def __init__(self, config_entry: ConfigEntry) -> None:
-        """Initialize PowerLoadBalancerOptionsFlow."""
+        """
+        Initialize PowerLoadBalancerOptionsFlow.
+
+        Args:
+            config_entry: The existing configuration entry to modify.
+
+        """
         self._config_entry = config_entry
         data_source = config_entry.options or config_entry.data
         self._config_data: dict[str, Any] = dict(data_source)
@@ -484,23 +559,29 @@ class PowerLoadBalancerOptionsFlow(OptionsFlow):
     async def async_step_init(
         self,
         user_input: dict[str, object] | None = None,
-        force_show_form: bool = False,  # noqa: FBT001, FBT002
+        *,
+        force_show_form: bool = False,
     ) -> ConfigFlowResult:
         """
         First step in options flow.
 
-        If already configured, go to sensor menu unless forced.
+        Args:
+            user_input: User input from the form, or None on first display.
+            force_show_form: Force showing the form even if already configured.
+
+        Returns:
+            ConfigFlowResult directing to the next step.
+
         """
         _LOGGER.debug(
-            (
-                "Opening options flow step: async_step_init, "
-                "user_input=%s, force_show_form=%s"
-            ),
+            "Opening options flow step: async_step_init, "
+            "user_input=%s, force_show_form=%s",
             user_input,
             force_show_form,
         )
         main_sensor = self._config_data.get(CONF_MAIN_POWER_SENSOR)
         power_budget = self._config_data.get(CONF_POWER_BUDGET_WATT)
+
         if (
             not force_show_form
             and main_sensor is not None
@@ -508,6 +589,7 @@ class PowerLoadBalancerOptionsFlow(OptionsFlow):
             and user_input is None
         ):
             return await self.async_step_sensor_menu()
+
         if user_input is not None:
             self._config_data[CONF_MAIN_POWER_SENSOR] = user_input[
                 CONF_MAIN_POWER_SENSOR
@@ -516,6 +598,7 @@ class PowerLoadBalancerOptionsFlow(OptionsFlow):
                 CONF_POWER_BUDGET_WATT
             ]
             return await self.async_step_sensor_menu()
+
         return self.async_show_form(
             step_id="init",
             data_schema=vol.Schema(
@@ -523,9 +606,7 @@ class PowerLoadBalancerOptionsFlow(OptionsFlow):
                     vol.Required(
                         CONF_MAIN_POWER_SENSOR,
                         default=self._config_data.get(CONF_MAIN_POWER_SENSOR),
-                    ): EntitySelector(
-                        EntitySelectorConfig(domain="sensor", device_class="power")
-                    ),
+                    ): _get_power_sensor_selector(),
                     vol.Required(
                         CONF_POWER_BUDGET_WATT,
                         default=self._config_data.get(CONF_POWER_BUDGET_WATT),
@@ -537,40 +618,36 @@ class PowerLoadBalancerOptionsFlow(OptionsFlow):
     async def async_step_sensor_menu(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
-        """Menu for managing monitored sensors."""
+        """
+        Menu for managing monitored sensors.
+
+        Args:
+            user_input: User input from the form, or None on first display.
+
+        Returns:
+            ConfigFlowResult directing to the selected action.
+
+        """
         _LOGGER.debug(
             "Opening options flow step: async_step_sensor_menu, user_input=%s",
             user_input,
         )
         if user_input is not None:
-            if user_input.get("action") == "edit_main_sensor":
+            action = user_input.get("action", "")
+            if action == "edit_main_sensor":
                 return await self.async_step_edit_main_sensor()
-            if user_input.get("action") == "add_sensor":
+            if action == "add_sensor":
                 return await self.async_step_add_sensor()
-            if user_input.get("action") == "finish":
+            if action == "finish":
                 return self.async_create_entry(title="", data=self._config_data)
-            if user_input.get("action", "").startswith("edit_sensor_"):
+            if str(action).startswith("edit_sensor_"):
                 try:
-                    sensor_index = int(user_input["action"].replace("edit_sensor_", ""))
+                    sensor_index = int(str(action).replace("edit_sensor_", ""))
                     return await self.async_step_edit_sensor(sensor_index=sensor_index)
                 except ValueError:
                     pass
 
-        options: dict[str, str] = {
-            "edit_main_sensor": "Edit Main Sensor Settings",
-            "add_sensor": "Add New Monitored Sensor",
-        }
-
-        configured_sensors: list[dict[str, Any]] = self._config_data.get(
-            CONF_POWER_SENSORS, []
-        )
-        for i, sensor_config in enumerate(configured_sensors):
-            sensor_name = sensor_config.get(CONF_NAME) or sensor_config.get(
-                CONF_ENTITY_ID, f"Sensor {i + 1}"
-            )
-            options[f"edit_sensor_{i}"] = f"Edit: {sensor_name}"
-
-        options["finish"] = "Save Configuration"
+        options = _build_menu_options(self._config_data)
 
         return self.async_show_form(
             step_id="sensor_menu",
@@ -580,48 +657,36 @@ class PowerLoadBalancerOptionsFlow(OptionsFlow):
     async def async_step_add_sensor(
         self, user_input: dict[str, object] | None = None
     ) -> ConfigFlowResult:
-        """Show form to add a new monitored power sensor in options flow."""
+        """
+        Show form to add a new monitored power sensor.
+
+        Args:
+            user_input: User input from the form, or None on first display.
+
+        Returns:
+            ConfigFlowResult with form or directing to next step.
+
+        """
         _LOGGER.debug(
             "Opening options flow step: async_step_add_sensor, user_input=%s",
             user_input,
         )
         errors: dict[str, str] = {}
+
         if user_input is not None:
-            sensor_entity_id = user_input.get(CONF_ENTITY_ID)
-            appliance_entity_id = user_input.get(CONF_APPLIANCE)
-            custom_name = user_input.get(CONF_NAME)
-            if not sensor_entity_id:
-                errors[CONF_ENTITY_ID] = "select_sensor_required"
-            if not appliance_entity_id:
-                errors[CONF_APPLIANCE] = "select_appliance_required"
-            if not errors:
-                friendly_name = self._get_friendly_name(sensor_entity_id)  # type: ignore[arg-type]
-                if custom_name:
-                    name_to_use = custom_name
-                elif friendly_name:
-                    name_to_use = friendly_name
-                else:
-                    name_to_use = str(sensor_entity_id)
-                new_sensor_config = {
-                    CONF_ENTITY_ID: sensor_entity_id,
-                    CONF_NAME: name_to_use,
-                    CONF_IMPORTANCE: user_input.get(CONF_IMPORTANCE, 5),
-                    CONF_LAST_RESORT: user_input.get(CONF_LAST_RESORT, False),
-                    CONF_APPLIANCE: appliance_entity_id,
-                }
+            errors, sensor_config = _process_sensor_input(self.hass, dict(user_input))
+            if not errors and sensor_config:
                 if CONF_POWER_SENSORS not in self._config_data or not isinstance(
                     self._config_data[CONF_POWER_SENSORS], list
                 ):
                     self._config_data[CONF_POWER_SENSORS] = []
-                self._config_data[CONF_POWER_SENSORS].append(new_sensor_config)
+                self._config_data[CONF_POWER_SENSORS].append(sensor_config)
                 return await self.async_step_sensor_menu()
-        initial_data: dict[str, object] = {}
-        schema = STEP_ADD_OR_EDIT_SENSOR_SCHEMA
+
         return self.async_show_form(
             step_id="add_sensor",
-            data_schema=schema,
+            data_schema=STEP_ADD_SENSOR_SCHEMA,
             errors=errors,
-            description_placeholders=initial_data,
         )
 
     async def async_step_edit_sensor(
@@ -629,110 +694,72 @@ class PowerLoadBalancerOptionsFlow(OptionsFlow):
         user_input: dict[str, object] | None = None,
         sensor_index: int | None = None,
     ) -> ConfigFlowResult:
-        """Show form to edit an existing monitored power sensor in options flow."""
+        """
+        Show form to edit an existing monitored power sensor.
+
+        Args:
+            user_input: User input from the form, or None on first display.
+            sensor_index: Index of the sensor to edit in the sensors list.
+
+        Returns:
+            ConfigFlowResult with form or directing to next step.
+
+        """
         _LOGGER.debug(
-            (
-                "Opening options flow step: async_step_edit_sensor, "
-                "user_input=%s, sensor_index=%s"
-            ),
+            "Opening options flow step: async_step_edit_sensor, "
+            "user_input=%s, sensor_index=%s",
             user_input,
             sensor_index,
         )
         errors: dict[str, str] = {}
-        sensors: list[dict[str, object]] = self._config_data.get(CONF_POWER_SENSORS, [])
+        sensors: list[dict[str, Any]] = self._config_data.get(CONF_POWER_SENSORS, [])
+
         if sensor_index is None or sensor_index < 0 or sensor_index >= len(sensors):
             return self.async_abort(reason="invalid_sensor_index")
-        current_sensor_config: dict[str, object] = sensors[sensor_index]
+
+        current_sensor_config = sensors[sensor_index]
+
         if user_input is not None:
             if user_input.get("remove_sensor"):
                 del self._config_data[CONF_POWER_SENSORS][sensor_index]
                 return await self.async_step_sensor_menu()
-            sensor_entity_id = user_input.get(CONF_ENTITY_ID)
-            appliance_entity_id = user_input.get(CONF_APPLIANCE)
-            custom_name = user_input.get(CONF_NAME)
-            if not sensor_entity_id:
-                errors[CONF_ENTITY_ID] = "select_sensor_required"
-            if not appliance_entity_id:
-                errors[CONF_APPLIANCE] = "select_appliance_required"
-            if not errors:
-                friendly_name = self._get_friendly_name(sensor_entity_id)
-                if custom_name:
-                    name_to_use = custom_name
-                elif friendly_name:
-                    name_to_use = friendly_name
-                else:
-                    name_to_use = str(sensor_entity_id)
-                new_sensor_config = {
-                    CONF_ENTITY_ID: sensor_entity_id,
-                    CONF_NAME: name_to_use,
-                    CONF_IMPORTANCE: user_input.get(CONF_IMPORTANCE, 5),
-                    CONF_LAST_RESORT: user_input.get(CONF_LAST_RESORT, False),
-                    CONF_APPLIANCE: appliance_entity_id,
-                }
-                self._config_data[CONF_POWER_SENSORS][sensor_index] = new_sensor_config
+
+            errors, sensor_config = _process_sensor_input(self.hass, dict(user_input))
+            if not errors and sensor_config:
+                self._config_data[CONF_POWER_SENSORS][sensor_index] = sensor_config
                 return await self.async_step_sensor_menu()
-        initial_data: dict[str, object] = {
+
+        initial_data = {
             CONF_ENTITY_ID: current_sensor_config.get(CONF_ENTITY_ID),
             CONF_NAME: current_sensor_config.get(CONF_NAME),
-            CONF_IMPORTANCE: current_sensor_config.get(CONF_IMPORTANCE, 5),
+            CONF_IMPORTANCE: current_sensor_config.get(
+                CONF_IMPORTANCE, DEFAULT_IMPORTANCE
+            ),
             CONF_LAST_RESORT: current_sensor_config.get(CONF_LAST_RESORT, False),
             CONF_APPLIANCE: current_sensor_config.get(CONF_APPLIANCE),
+            CONF_DEVICE_COOLDOWN: current_sensor_config.get(CONF_DEVICE_COOLDOWN),
         }
-        schema_dict: dict[object, object] = {}
-        if initial_data[CONF_ENTITY_ID] is not None:
-            schema_dict[
-                vol.Required(CONF_ENTITY_ID, default=initial_data[CONF_ENTITY_ID])
-            ] = EntitySelector(
-                EntitySelectorConfig(domain="sensor", device_class="power")
-            )
-        else:
-            schema_dict[vol.Required(CONF_ENTITY_ID)] = EntitySelector(
-                EntitySelectorConfig(domain="sensor", device_class="power")
-            )
-        if initial_data[CONF_NAME] is not None:
-            schema_dict[vol.Optional(CONF_NAME, default=initial_data[CONF_NAME])] = (
-                TextSelector(TextSelectorConfig())
-            )
-        else:
-            schema_dict[vol.Optional(CONF_NAME)] = TextSelector(TextSelectorConfig())
-        if initial_data[CONF_IMPORTANCE] is not None:
-            schema_dict[
-                vol.Required(CONF_IMPORTANCE, default=initial_data[CONF_IMPORTANCE])
-            ] = NumberSelector(
-                NumberSelectorConfig(min=1, max=10, mode=NumberSelectorMode.SLIDER)
-            )
-        else:
-            schema_dict[vol.Required(CONF_IMPORTANCE, default=5)] = NumberSelector(
-                NumberSelectorConfig(min=1, max=10, mode=NumberSelectorMode.SLIDER)
-            )
-        if initial_data[CONF_LAST_RESORT] is not None:
-            schema_dict[
-                vol.Required(CONF_LAST_RESORT, default=initial_data[CONF_LAST_RESORT])
-            ] = bool
-        else:
-            schema_dict[vol.Required(CONF_LAST_RESORT, default=False)] = bool
-        if initial_data[CONF_APPLIANCE] is not None:
-            schema_dict[
-                vol.Required(CONF_APPLIANCE, default=initial_data[CONF_APPLIANCE])
-            ] = EntitySelector(EntitySelectorConfig(domain=["switch", "light"]))
-        else:
-            schema_dict[vol.Required(CONF_APPLIANCE)] = EntitySelector(
-                EntitySelectorConfig(domain=["switch", "light"])
-            )
-        schema_dict[vol.Optional("remove_sensor")] = bool
-        schema = vol.Schema(schema_dict)
+
         return self.async_show_form(
             step_id="edit_sensor",
-            data_schema=schema,
+            data_schema=_build_sensor_edit_schema(initial_data),
             errors=errors,
-            description_placeholders=initial_data,
             last_step=False,
         )
 
     async def async_step_edit_main_sensor(
         self, user_input: dict[str, object] | None = None
     ) -> ConfigFlowResult:
-        """Show form to edit the main sensor and power budget in options flow."""
+        """
+        Show form to edit the main sensor and power budget.
+
+        Args:
+            user_input: User input from the form, or None on first display.
+
+        Returns:
+            ConfigFlowResult with form or directing to next step.
+
+        """
         _LOGGER.debug(
             "Opening options flow step: async_step_edit_main_sensor, user_input=%s",
             user_input,
@@ -744,7 +771,17 @@ class PowerLoadBalancerOptionsFlow(OptionsFlow):
             self._config_data[CONF_POWER_BUDGET_WATT] = user_input[
                 CONF_POWER_BUDGET_WATT
             ]
+            cooldown = user_input.get(CONF_COOLDOWN_SECONDS)
+            if cooldown is not None:
+                self._config_data[CONF_COOLDOWN_SECONDS] = int(cooldown)
+            else:
+                self._config_data[CONF_COOLDOWN_SECONDS] = DEFAULT_COOLDOWN_SECONDS
             return await self.async_step_sensor_menu()
+
+        current_cooldown = self._config_data.get(
+            CONF_COOLDOWN_SECONDS, DEFAULT_COOLDOWN_SECONDS
+        )
+
         return self.async_show_form(
             step_id="edit_main_sensor",
             data_schema=vol.Schema(
@@ -752,60 +789,23 @@ class PowerLoadBalancerOptionsFlow(OptionsFlow):
                     vol.Required(
                         CONF_MAIN_POWER_SENSOR,
                         default=self._config_data.get(CONF_MAIN_POWER_SENSOR),
-                    ): EntitySelector(
-                        EntitySelectorConfig(domain="sensor", device_class="power")
-                    ),
+                    ): _get_power_sensor_selector(),
                     vol.Required(
                         CONF_POWER_BUDGET_WATT,
                         default=self._config_data.get(CONF_POWER_BUDGET_WATT),
                     ): int,
+                    vol.Required(
+                        CONF_COOLDOWN_SECONDS,
+                        default=current_cooldown,
+                    ): NumberSelector(
+                        NumberSelectorConfig(
+                            min=1,
+                            max=3600,
+                            step=1,
+                            mode=NumberSelectorMode.BOX,
+                            unit_of_measurement="s",
+                        )
+                    ),
                 }
             ),
         )
-
-    def _get_friendly_name(self, entity_id: str) -> str | None:
-        """
-        Return a friendly name for the device connected to the given sensor entity_id.
-
-        This method tries to get the device name from the device registry.
-        If not available, it falls back to the entity's original_name or name.
-        """
-        try:
-            from homeassistant.helpers.device_registry import (
-                async_get as async_get_device_registry,
-            )
-            from homeassistant.helpers.entity_registry import (
-                async_get as async_get_entity_registry,
-            )
-        except ImportError:
-            result: str | None = None
-            return result
-        hass = getattr(self, "hass", None)
-        if hass is None:
-            return None
-        entity_registry = async_get_entity_registry(hass)
-        if entity_registry is None:
-            return None
-        entity = entity_registry.entities.get(str(entity_id))
-        device_name: str | None = None
-        if entity is not None and entity.device_id:
-            device_registry = async_get_device_registry(hass)
-            if device_registry is not None:
-                device = device_registry.devices.get(entity.device_id)
-                if device is not None and device.name:
-                    device_name = device.name
-        if device_name is not None:
-            return device_name
-        entity_original_name: str | None = None
-        if (
-            entity is not None
-            and hasattr(entity, "original_name")
-            and entity.original_name
-        ):
-            entity_original_name = entity.original_name
-        if entity_original_name is not None:
-            return entity_original_name
-        entity_name: str | None = None
-        if entity is not None and hasattr(entity, "name") and entity.name:
-            entity_name = entity.name
-        return entity_name

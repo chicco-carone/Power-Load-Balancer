@@ -1,4 +1,12 @@
-import logging  # noqa: D104
+"""
+Power Load Balancer integration for Home Assistant.
+
+This integration monitors household power consumption and automatically turns off
+less critical appliances when exceeding a configured power budget. Appliances are
+prioritized by importance and automatically restored when power headroom allows.
+"""
+
+import logging
 
 import voluptuous as vol
 from homeassistant.config_entries import ConfigEntry
@@ -12,13 +20,13 @@ from .const import (
     SERVICE_TURN_OFF_APPLIANCE,
     SERVICE_TURN_ON_APPLIANCE,
 )
+from .context_logger import ContextLogger
 from .exceptions import ConfigurationError, PowerLoadBalancerError
 from .power_balancer import PowerLoadBalancer
-from .utils import ContextLogger
 
 _LOGGER = logging.getLogger(__name__)
 
-PLATFORMS = ["switch", "sensor"]
+PLATFORMS = ["sensor"]
 
 SERVICE_TURN_OFF_APPLIANCE_SCHEMA = vol.Schema(
     {
@@ -119,9 +127,10 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             if hasattr(power_balancer, "async_cleanup"):
                 await power_balancer.async_cleanup()
 
-        logger.debug("Unloading platforms", platforms=PLATFORMS)
-        unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
-
+            logger.debug("Unloading platforms", platforms=PLATFORMS)
+            unload_ok = await hass.config_entries.async_unload_platforms(
+                entry, PLATFORMS
+            )
         if unload_ok and entry.entry_id in hass.data.get(DOMAIN, {}):
             logger.debug("Removing entry from hass data")
             del hass.data[DOMAIN][entry.entry_id]
