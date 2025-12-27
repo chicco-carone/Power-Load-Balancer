@@ -333,11 +333,11 @@ class ApplianceController:
                         "Auto turn-on task failed", entity_id=entity_to_restore
                     )
 
-                    self._expected_power_restoration.pop(entity_id, None)
+                    self._expected_power_restoration.pop(entity_to_restore, None)
 
                     if self._event_log_sensor:
                         self._event_log_sensor.add_log_entry(
-                            f"Auto turn-on failed for {entity_id}. "
+                            f"Auto turn-on failed for {entity_to_restore}. "
                             f"Error: {type(exc).__name__}"
                         )
 
