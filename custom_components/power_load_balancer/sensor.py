@@ -99,8 +99,19 @@ class PowerBalancerLogSensor(SensorEntity):
             message: The log message to add.
 
         """
-        timestamp = self.hass.loop.time()
-        log_entry = f"{timestamp:.0f} - {message}"
+@callback
+def add_log_entry(self, message: str) -> None:
+    """
+    Add an entry to the event log.
+
+    Args:
+        message: The log message to add.
+
+    """
+    from datetime import datetime
+    
+    timestamp = datetime.now().isoformat(timespec="seconds")
+    log_entry = f"{timestamp} - {message}"
         self._attr_extra_state_attributes["events"].append(log_entry)
 
         if len(self._attr_extra_state_attributes["events"]) > MAX_LOG_SIZE:
