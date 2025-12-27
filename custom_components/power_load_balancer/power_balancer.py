@@ -25,9 +25,11 @@ from .appliance_controller import ApplianceController
 from .balancing_engine import BalancingCallbacks, BalancingEngine
 from .const import (
     CONF_APPLIANCE,
+    CONF_COOLDOWN_SECONDS,
     CONF_MAIN_POWER_SENSOR,
     CONF_POWER_BUDGET_WATT,
     CONF_POWER_SENSORS,
+    DEFAULT_COOLDOWN_SECONDS,
     DEVICE_MANUFACTURER,
     DEVICE_MODEL,
     DOMAIN,
@@ -95,6 +97,9 @@ class PowerLoadBalancer:
         self._main_power_sensor_entity_id = config_data[CONF_MAIN_POWER_SENSOR]
         self._monitored_sensors = config_data.get(CONF_POWER_SENSORS, [])
         self._power_budget = config_data[CONF_POWER_BUDGET_WATT]
+        self._global_cooldown_seconds = config_data.get(
+            CONF_COOLDOWN_SECONDS, DEFAULT_COOLDOWN_SECONDS
+        )
 
         self._power_monitor = PowerMonitor(
             hass,
@@ -102,7 +107,9 @@ class PowerLoadBalancer:
             self._monitored_sensors,
             self._power_budget,
         )
-        self._appliance_controller = ApplianceController(hass, self._monitored_sensors)
+        self._appliance_controller = ApplianceController(
+            hass, self._monitored_sensors, self._global_cooldown_seconds
+        )
         self._balancing_engine = BalancingEngine(
             hass, self._monitored_sensors, self._power_budget
         )
@@ -374,6 +381,7 @@ class PowerLoadBalancer:
 
         """
         await self._appliance_controller.turn_off_appliance_service(entity_id, reason)
+        self._appliance_controller.mark_appliance_balanced_off(entity_id, reason)
 
         expected_power = self._get_sensor_power_for_appliance(entity_id)
         self._appliance_controller.schedule_auto_turn_on(
@@ -381,7 +389,6 @@ class PowerLoadBalancer:
             expected_power,
             self.get_total_house_power,
             self._power_budget,
-            lambda: self._is_balancing_enabled,
         )
 
     def _get_sensor_power_for_appliance(self, appliance_entity_id: str) -> float:

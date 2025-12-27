@@ -14,7 +14,12 @@ from typing import TYPE_CHECKING, Any
 from homeassistant.const import CONF_ENTITY_ID
 from homeassistant.helpers import issue_registry as ir
 
-from .const import AUTO_TURN_ON_DELAY_SECONDS, CONF_APPLIANCE, DOMAIN
+from .const import (
+    CONF_APPLIANCE,
+    CONF_DEVICE_COOLDOWN,
+    DEFAULT_COOLDOWN_SECONDS,
+    DOMAIN,
+)
 from .context_logger import ContextLogger
 from .exceptions import (
     ApplianceControlError,
@@ -47,6 +52,7 @@ class ApplianceController:
         self,
         hass: HomeAssistant,
         monitored_sensors: list[dict[str, Any]],
+        global_cooldown_seconds: int = DEFAULT_COOLDOWN_SECONDS,
         event_log_sensor: Any | None = None,
     ) -> None:
         """
@@ -55,11 +61,14 @@ class ApplianceController:
         Args:
             hass: Home Assistant instance.
             monitored_sensors: List of monitored sensor configurations.
+            global_cooldown_seconds: Global cooldown time in seconds before
+                auto turn-on.
             event_log_sensor: Optional event log sensor for logging events.
 
         """
         self.hass = hass
         self._monitored_sensors = monitored_sensors
+        self._global_cooldown_seconds = global_cooldown_seconds
         self._event_log_sensor = event_log_sensor
         self._balanced_off_appliances: dict[str, Any] = {}
         self._scheduled_auto_turn_ons: dict[str, asyncio.Task[Any]] = {}
@@ -195,13 +204,34 @@ class ApplianceController:
         """
         return self._expected_power_restoration.get(entity_id, 0.0)
 
+    def get_cooldown_for_appliance(self, appliance_entity_id: str) -> int:
+        """
+        Get the cooldown time for a specific appliance.
+
+        Returns the device-specific cooldown if configured,
+        otherwise the global cooldown.
+
+        Args:
+            appliance_entity_id: Entity ID of the appliance.
+
+        Returns:
+            Cooldown time in seconds.
+
+        """
+        for sensor_config in self._monitored_sensors:
+            if sensor_config.get(CONF_APPLIANCE) == appliance_entity_id:
+                device_cooldown = sensor_config.get(CONF_DEVICE_COOLDOWN)
+                if device_cooldown is not None and device_cooldown > 0:
+                    return int(device_cooldown)
+                break
+        return self._global_cooldown_seconds
+
     def schedule_auto_turn_on(
         self,
         entity_id: str,
         expected_power: float,
         get_total_power_callback: Any,
         power_budget: int,
-        is_balancing_enabled_callback: Any,
     ) -> None:
         """
         Schedule an automatic turn-on of an appliance after the configured delay.
@@ -211,16 +241,17 @@ class ApplianceController:
             expected_power: Expected power consumption in watts.
             get_total_power_callback: Callback to get current total power.
             power_budget: Maximum power budget in watts.
-            is_balancing_enabled_callback: Callback to check if balancing is enabled.
 
         """
         logger = ContextLogger(_LOGGER, "auto_turn_on").new_operation("schedule")
 
         try:
+            cooldown_seconds = self.get_cooldown_for_appliance(entity_id)
+
             logger.debug(
-                "Scheduling auto turn-on for %s in %s seconds",
-                entity_id,
-                AUTO_TURN_ON_DELAY_SECONDS,
+                "Scheduling auto turn-on for appliance",
+                entity_id=entity_id,
+                cooldown_seconds=cooldown_seconds,
             )
 
             if entity_id in self._scheduled_auto_turn_ons:
@@ -235,21 +266,19 @@ class ApplianceController:
 
             self._expected_power_restoration[entity_id] = expected_power
 
-            async def auto_turn_on_task(entity_to_restore: str) -> None:
+            async def auto_turn_on_task(
+                entity_to_restore: str, delay_seconds: int
+            ) -> None:
                 try:
                     logger.debug(
                         "Waiting for auto turn-on delay",
-                        delay=AUTO_TURN_ON_DELAY_SECONDS,
+                        delay=delay_seconds,
                     )
-                    await asyncio.sleep(AUTO_TURN_ON_DELAY_SECONDS)
+                    await asyncio.sleep(delay_seconds)
 
                     logger.info(
                         "Auto turn-on timer expired", entity_id=entity_to_restore
                     )
-
-                    if not is_balancing_enabled_callback():
-                        logger.debug("Balancing disabled, cancelling auto turn-on")
-                        return
 
                     appliance_state = self.hass.states.get(entity_to_restore)
                     if appliance_state and appliance_state.state != "off":
@@ -289,7 +318,7 @@ class ApplianceController:
                     )
                     await self.turn_on_appliance_service(
                         entity_to_restore,
-                        f"Automatic restoration after {AUTO_TURN_ON_DELAY_SECONDS}s "
+                        f"Automatic restoration after {delay_seconds}s "
                         "power budget timeout",
                     )
 
@@ -312,7 +341,9 @@ class ApplianceController:
                             f"Error: {type(exc).__name__}"
                         )
 
-            task = self.hass.async_create_task(auto_turn_on_task(entity_id))
+            task = self.hass.async_create_task(
+                auto_turn_on_task(entity_id, cooldown_seconds)
+            )
             self._scheduled_auto_turn_ons[entity_id] = task
 
             logger.debug("Auto turn-on scheduled successfully", entity_id=entity_id)

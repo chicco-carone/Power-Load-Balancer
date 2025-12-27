@@ -30,11 +30,14 @@ from homeassistant.helpers.selector import (
 
 from .const import (
     CONF_APPLIANCE,
+    CONF_COOLDOWN_SECONDS,
+    CONF_DEVICE_COOLDOWN,
     CONF_IMPORTANCE,
     CONF_LAST_RESORT,
     CONF_MAIN_POWER_SENSOR,
     CONF_POWER_BUDGET_WATT,
     CONF_POWER_SENSORS,
+    DEFAULT_COOLDOWN_SECONDS,
     DOMAIN,
 )
 
@@ -113,6 +116,19 @@ def _build_sensor_edit_schema(initial_data: dict[str, Any]) -> vol.Schema:
         )
     else:
         schema_dict[vol.Required(CONF_APPLIANCE)] = _get_appliance_selector()
+
+    device_cooldown = initial_data.get(CONF_DEVICE_COOLDOWN)
+    schema_dict[vol.Optional(CONF_DEVICE_COOLDOWN, default=device_cooldown)] = (
+        NumberSelector(
+            NumberSelectorConfig(
+                min=0,
+                max=3600,
+                step=1,
+                mode=NumberSelectorMode.BOX,
+                unit_of_measurement="s",
+            )
+        )
+    )
 
     schema_dict[vol.Optional("remove_sensor")] = bool
 
@@ -239,13 +255,20 @@ def _process_sensor_input(
     else:
         name_to_use = str(sensor_entity_id)
 
-    sensor_config = {
+    device_cooldown = user_input.get(CONF_DEVICE_COOLDOWN)
+    if device_cooldown is not None and device_cooldown <= 0:
+        device_cooldown = None
+
+    sensor_config: dict[str, Any] = {
         CONF_ENTITY_ID: sensor_entity_id,
         CONF_NAME: name_to_use,
         CONF_IMPORTANCE: user_input.get(CONF_IMPORTANCE, DEFAULT_IMPORTANCE),
         CONF_LAST_RESORT: user_input.get(CONF_LAST_RESORT, False),
         CONF_APPLIANCE: appliance_entity_id,
     }
+
+    if device_cooldown is not None:
+        sensor_config[CONF_DEVICE_COOLDOWN] = int(device_cooldown)
 
     return errors, sensor_config
 
@@ -259,6 +282,15 @@ STEP_ADD_SENSOR_SCHEMA: vol.Schema = vol.Schema(
         ),
         vol.Required(CONF_LAST_RESORT, default=False): bool,
         vol.Required(CONF_APPLIANCE): _get_appliance_selector(),
+        vol.Optional(CONF_DEVICE_COOLDOWN): NumberSelector(
+            NumberSelectorConfig(
+                min=0,
+                max=3600,
+                step=1,
+                mode=NumberSelectorMode.BOX,
+                unit_of_measurement="s",
+            )
+        ),
     }
 )
 
@@ -362,11 +394,19 @@ class PowerLoadBalancerConfigFlow(ConfigFlow, domain=DOMAIN):
                     CONF_MAIN_POWER_SENSOR
                 ]
                 self._config_data[CONF_POWER_BUDGET_WATT] = power_budget
+                cooldown = user_input.get(CONF_COOLDOWN_SECONDS)
+                if cooldown is not None:
+                    self._config_data[CONF_COOLDOWN_SECONDS] = int(cooldown)
+                else:
+                    self._config_data[CONF_COOLDOWN_SECONDS] = DEFAULT_COOLDOWN_SECONDS
                 return await self.async_step_user()
 
         schema_dict: dict[Any, Any] = {}
         current_sensor = self._config_data.get(CONF_MAIN_POWER_SENSOR)
         current_budget = self._config_data.get(CONF_POWER_BUDGET_WATT)
+        current_cooldown = self._config_data.get(
+            CONF_COOLDOWN_SECONDS, DEFAULT_COOLDOWN_SECONDS
+        )
 
         if current_sensor is not None:
             schema_dict[
@@ -383,6 +423,18 @@ class PowerLoadBalancerConfigFlow(ConfigFlow, domain=DOMAIN):
             ] = int
         else:
             schema_dict[vol.Required(CONF_POWER_BUDGET_WATT)] = int
+
+        schema_dict[vol.Required(CONF_COOLDOWN_SECONDS, default=current_cooldown)] = (
+            NumberSelector(
+                NumberSelectorConfig(
+                    min=1,
+                    max=3600,
+                    step=1,
+                    mode=NumberSelectorMode.BOX,
+                    unit_of_measurement="s",
+                )
+            )
+        )
 
         return self.async_show_form(
             step_id="edit_main_sensor",
@@ -473,6 +525,7 @@ class PowerLoadBalancerConfigFlow(ConfigFlow, domain=DOMAIN):
             ),
             CONF_LAST_RESORT: current_sensor_config.get(CONF_LAST_RESORT, False),
             CONF_APPLIANCE: current_sensor_config.get(CONF_APPLIANCE),
+            CONF_DEVICE_COOLDOWN: current_sensor_config.get(CONF_DEVICE_COOLDOWN),
         }
 
         return self.async_show_form(
@@ -684,6 +737,7 @@ class PowerLoadBalancerOptionsFlow(OptionsFlow):
             ),
             CONF_LAST_RESORT: current_sensor_config.get(CONF_LAST_RESORT, False),
             CONF_APPLIANCE: current_sensor_config.get(CONF_APPLIANCE),
+            CONF_DEVICE_COOLDOWN: current_sensor_config.get(CONF_DEVICE_COOLDOWN),
         }
 
         return self.async_show_form(
@@ -717,7 +771,16 @@ class PowerLoadBalancerOptionsFlow(OptionsFlow):
             self._config_data[CONF_POWER_BUDGET_WATT] = user_input[
                 CONF_POWER_BUDGET_WATT
             ]
+            cooldown = user_input.get(CONF_COOLDOWN_SECONDS)
+            if cooldown is not None:
+                self._config_data[CONF_COOLDOWN_SECONDS] = int(cooldown)
+            else:
+                self._config_data[CONF_COOLDOWN_SECONDS] = DEFAULT_COOLDOWN_SECONDS
             return await self.async_step_sensor_menu()
+
+        current_cooldown = self._config_data.get(
+            CONF_COOLDOWN_SECONDS, DEFAULT_COOLDOWN_SECONDS
+        )
 
         return self.async_show_form(
             step_id="edit_main_sensor",
@@ -731,6 +794,18 @@ class PowerLoadBalancerOptionsFlow(OptionsFlow):
                         CONF_POWER_BUDGET_WATT,
                         default=self._config_data.get(CONF_POWER_BUDGET_WATT),
                     ): int,
+                    vol.Required(
+                        CONF_COOLDOWN_SECONDS,
+                        default=current_cooldown,
+                    ): NumberSelector(
+                        NumberSelectorConfig(
+                            min=1,
+                            max=3600,
+                            step=1,
+                            mode=NumberSelectorMode.BOX,
+                            unit_of_measurement="s",
+                        )
+                    ),
                 }
             ),
         )
