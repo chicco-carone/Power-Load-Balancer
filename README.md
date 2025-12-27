@@ -56,7 +56,7 @@ After installation and restart:
         *   Set the **Importance** (1 being highest priority to keep on, 10 being lowest priority).
         *   Check the **Last Resort** box if this appliance should only be turned off as a last resort.
         *   Select the **Controllable Appliance** (switch or light entity) associated with this sensor.
-        *   Optionally overrdide the **Cooldown Time** for this specific appliance.
+        *   Optionally override the **Cooldown Time** for this specific appliance.
     *   You can add multiple monitored sensors and their associated appliances.
     *   You can remove configured sensors from the main configuration screen.
     *   Select **"Finish Configuration"** when done. Not selecting finish configuration at the end will result in no configuration being saved.
