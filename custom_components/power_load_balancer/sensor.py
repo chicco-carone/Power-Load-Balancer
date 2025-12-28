@@ -112,15 +112,15 @@ def add_log_entry(self, message: str) -> None:
     
     timestamp = datetime.now().isoformat(timespec="seconds")
     log_entry = f"{timestamp} - {message}"
-        self._attr_extra_state_attributes["events"].append(log_entry)
+    self._attr_extra_state_attributes["events"].append(log_entry)
 
-        if len(self._attr_extra_state_attributes["events"]) > MAX_LOG_SIZE:
-            self._attr_extra_state_attributes["events"] = (
-                self._attr_extra_state_attributes["events"][-MAX_LOG_SIZE:]
-            )
+    if len(self._attr_extra_state_attributes["events"]) > MAX_LOG_SIZE:
+        self._attr_extra_state_attributes["events"] = (
+        self._attr_extra_state_attributes["events"][-MAX_LOG_SIZE:]
+    )
 
-        self._attr_native_value = message
-        self.async_write_ha_state()
+    self._attr_native_value = message
+    self.async_write_ha_state()
 
     @property
     def native_value(self) -> StateType:
