@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, Any
 from homeassistant.components.sensor import SensorEntity
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.device_registry import DeviceInfo
+from homeassistant.util import dt
 
 from .const import DEVICE_MANUFACTURER, DEVICE_MODEL, DOMAIN
 
@@ -99,19 +100,8 @@ class PowerBalancerLogSensor(SensorEntity):
             message: The log message to add.
 
         """
-@callback
-def add_log_entry(self, message: str) -> None:
-    """
-    Add an entry to the event log.
-
-    Args:
-        message: The log message to add.
-
-    """
-    from datetime import datetime
-    
-    timestamp = datetime.now().isoformat(timespec="seconds")
-    log_entry = f"{timestamp} - {message}"
+        timestamp = dt.utcnow().isoformat(timespec="seconds")
+        log_entry = f"{timestamp} - {message}"
         self._attr_extra_state_attributes["events"].append(log_entry)
 
         if len(self._attr_extra_state_attributes["events"]) > MAX_LOG_SIZE:
@@ -120,6 +110,7 @@ def add_log_entry(self, message: str) -> None:
             )
 
         self._attr_native_value = message
+        _LOGGER.debug("Power balancer event logged: %s", message)
         self.async_write_ha_state()
 
     @property
