@@ -29,6 +29,8 @@ Before installing, ensure you have:
 
 ### Via HACS (Recommended)
 
+[![Open this repository in HACS](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=chicco-carone&repository=Power-Load-Balancer&category=integration)
+
 1.  In Home Assistant, navigate to **HACS -> Integrations**.
 2.  Click the three dots in the top right corner and select **"Custom repositories"**.
 3.  Add this url `https://github.com/chicco-carone/Power-Load-Balancer.git`.
@@ -103,4 +105,5 @@ This project is licensed under the [MIT License](LICENSE) - see the LICENSE file
 ---
 
 **Disclaimer:** This is a custom component and is not officially endorsed or supported by the Home Assistant team. Use at your own risk. Ensure your electrical wiring and appliances are suitable for this type of automation.
+
 
