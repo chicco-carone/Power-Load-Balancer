@@ -118,10 +118,11 @@ def _build_sensor_edit_schema(initial_data: dict[str, Any]) -> vol.Schema:
         schema_dict[vol.Required(CONF_APPLIANCE)] = _get_appliance_selector()
 
     device_cooldown = initial_data.get(CONF_DEVICE_COOLDOWN)
-    schema_dict[vol.Optional(CONF_DEVICE_COOLDOWN, default=device_cooldown)] = (
+    default_cooldown_value = device_cooldown if device_cooldown is not None else -1
+    schema_dict[vol.Optional(CONF_DEVICE_COOLDOWN, default=default_cooldown_value)] = (
         NumberSelector(
             NumberSelectorConfig(
-                min=0,
+                min=-1,
                 max=3600,
                 step=1,
                 mode=NumberSelectorMode.BOX,
@@ -256,7 +257,7 @@ def _process_sensor_input(
         name_to_use = str(sensor_entity_id)
 
     device_cooldown = user_input.get(CONF_DEVICE_COOLDOWN)
-    if device_cooldown is not None and device_cooldown <= 0:
+    if device_cooldown is not None and device_cooldown < 0:
         device_cooldown = None
 
     sensor_config: dict[str, Any] = {
@@ -282,9 +283,9 @@ STEP_ADD_SENSOR_SCHEMA: vol.Schema = vol.Schema(
         ),
         vol.Required(CONF_LAST_RESORT, default=False): bool,
         vol.Required(CONF_APPLIANCE): _get_appliance_selector(),
-        vol.Optional(CONF_DEVICE_COOLDOWN): NumberSelector(
+        vol.Optional(CONF_DEVICE_COOLDOWN, default=-1): NumberSelector(
             NumberSelectorConfig(
-                min=0,
+                min=-1,
                 max=3600,
                 step=1,
                 mode=NumberSelectorMode.BOX,
@@ -502,6 +503,11 @@ class PowerLoadBalancerConfigFlow(ConfigFlow, domain=DOMAIN):
         errors: dict[str, str] = {}
         sensors: list[dict[str, Any]] = self._config_data.get(CONF_POWER_SENSORS, [])
 
+        if sensor_index is not None:
+            self._editing_sensor_index = sensor_index
+        elif hasattr(self, "_editing_sensor_index"):
+            sensor_index = self._editing_sensor_index
+
         if sensor_index is None or sensor_index < 0 or sensor_index >= len(sensors):
             return self.async_abort(reason="invalid_sensor_index")
 
@@ -713,6 +719,11 @@ class PowerLoadBalancerOptionsFlow(OptionsFlow):
         )
         errors: dict[str, str] = {}
         sensors: list[dict[str, Any]] = self._config_data.get(CONF_POWER_SENSORS, [])
+
+        if sensor_index is not None:
+            self._editing_sensor_index = sensor_index
+        elif hasattr(self, "_editing_sensor_index"):
+            sensor_index = self._editing_sensor_index
 
         if sensor_index is None or sensor_index < 0 or sensor_index >= len(sensors):
             return self.async_abort(reason="invalid_sensor_index")
