@@ -5,7 +5,11 @@ turn_off_appliance:
     entity_id:
       required: true
       selector:
-        entity: {}
+        entity:
+          domain:
+            - switch
+            - light
+            - climate
       description: The entity ID of the appliance to turn off
     reason:
       required: false
@@ -20,7 +24,11 @@ turn_on_appliance:
     entity_id:
       required: true
       selector:
-        entity: {}
+        entity:
+          domain:
+            - switch
+            - light
+            - climate
       description: The entity ID of the appliance to turn on
     reason:
       required: false
