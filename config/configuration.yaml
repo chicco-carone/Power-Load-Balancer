@@ -46,6 +46,33 @@ input_number:
     unit_of_measurement: W
     icon: mdi:home-plus
 
+  hvac_power:
+    name: "HVAC Power"
+    initial: 0.0
+    min: 0.0
+    max: 5000.0
+    step: 10.0
+    unit_of_measurement: W
+    icon: mdi:air-conditioner
+
+  hvac_target_temperature:
+    name: "HVAC Target Temperature"
+    initial: 21.0
+    min: 16.0
+    max: 30.0
+    step: 0.5
+    unit_of_measurement: C
+    icon: mdi:thermometer
+
+  hvac_current_temperature:
+    name: "HVAC Current Temperature"
+    initial: 20.0
+    min: -10.0
+    max: 50.0
+    step: 0.1
+    unit_of_measurement: C
+    icon: mdi:thermometer-lines
+
 input_boolean:
   appliance_1_switch:
     name: "Dishwasher"
@@ -58,6 +85,21 @@ input_boolean:
   appliance_3_switch:
     name: "Radiator"
     icon: mdi:radiator
+
+  hvac_switch:
+    name: "HVAC"
+    icon: mdi:air-conditioner
+
+input_select:
+  hvac_mode:
+    name: "HVAC Mode"
+    options:
+      - "off"
+      - "heat"
+      - "cool"
+      - "auto"
+    initial: "off"
+    icon: mdi:hvac
 
 template:
   - sensor:
@@ -122,6 +164,17 @@ template:
         state_class: measurement
         icon: "mdi:home-lightning-bolt"
 
+      - name: "HVAC Power"
+        unique_id: "hvac_power_sensor"
+        state: >-
+          {% if not is_state('input_select.hvac_mode', 'off') %}
+            {{ states('input_number.hvac_power') | float(0) }}
+          {% else %} 0 {% endif %}
+        unit_of_measurement: W
+        device_class: power
+        state_class: measurement
+        icon: "mdi:air-conditioner"
+
   - switch:
       - default_entity_id: switch.appliance_1
         name: "Dishwasher"
@@ -161,3 +214,34 @@ template:
           - action: input_boolean.turn_off
             target:
               entity_id: input_boolean.appliance_3_switch
+
+climate:
+  - platform: climate_template
+    name: "Test HVAC Climate"
+    unique_id: "test_hvac_climate"
+    modes:
+      - "off"
+      - "heat"
+      - "cool"
+      - "auto"
+    min_temp: 16
+    max_temp: 30
+    temp_step: 0.5
+    current_temperature_template: "{{ states('input_number.hvac_current_temperature') }}"
+    target_temperature_template: "{{ states('input_number.hvac_target_temperature') }}"
+    hvac_mode_template: "{{ states('input_select.hvac_mode') }}"
+    set_temperature:
+      - service: input_number.set_value
+        target:
+          entity_id: input_number.hvac_target_temperature
+        data:
+          value: "{{ temperature }}"
+    set_hvac_mode:
+      - service: input_select.select_option
+        target:
+          entity_id: input_select.hvac_mode
+        data:
+          option: "{{ hvac_mode }}"
+      - service: "input_boolean.turn_{{ 'off' if hvac_mode == 'off' else 'on' }}"
+        target:
+          entity_id: input_boolean.hvac_switch
