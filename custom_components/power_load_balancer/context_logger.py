@@ -122,7 +122,7 @@ def log_performance(
     def decorator(func: Callable[..., Awaitable[T]]) -> Callable[..., Awaitable[T]]:
         @functools.wraps(func)
         async def wrapper(*args: Any, **kwargs: Any) -> T:
-            perf_logger = logger if logger else ContextLogger(_LOGGER, "performance")
+            perf_logger = logger or ContextLogger(_LOGGER, "performance")
 
             start_time = time.time()
             try:

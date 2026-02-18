@@ -59,7 +59,7 @@ async def safe_service_call(params: ServiceCallParams) -> None:
         ServiceCallError: If service call fails.
 
     """
-    logger = params.logger if params.logger else ContextLogger(_LOGGER, "service_call")
+    logger = params.logger or ContextLogger(_LOGGER, "service_call")
     service_data = params.service_data or {}
     timeout: float = 10.0
 

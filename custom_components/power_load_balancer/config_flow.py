@@ -8,6 +8,7 @@ including the main power sensor configuration and monitored appliance setup.
 from __future__ import annotations
 
 import logging
+from copy import deepcopy
 from typing import TYPE_CHECKING, Any
 
 import voluptuous as vol
@@ -69,7 +70,7 @@ def _get_power_sensor_selector() -> EntitySelector:
 
 def _get_appliance_selector() -> EntitySelector:
     """Return the entity selector for controllable appliances."""
-    return EntitySelector(EntitySelectorConfig(domain=["switch", "light"]))
+    return EntitySelector(EntitySelectorConfig(domain=["switch", "light", "climate"]))
 
 
 def _build_sensor_edit_schema(initial_data: dict[str, Any]) -> vol.Schema:
@@ -248,24 +249,34 @@ def _process_sensor_input(
     if errors:
         return errors, None
 
-    friendly_name = _get_friendly_name_for_entity(hass, str(sensor_entity_id))
+    sensor_entity_id_str = str(sensor_entity_id)
+    appliance_entity_id_str = str(appliance_entity_id)
+
+    friendly_name = _get_friendly_name_for_entity(hass, sensor_entity_id_str)
     if custom_name:
         name_to_use = str(custom_name)
     elif friendly_name:
         name_to_use = friendly_name
     else:
-        name_to_use = str(sensor_entity_id)
+        name_to_use = sensor_entity_id_str
 
     device_cooldown = user_input.get(CONF_DEVICE_COOLDOWN)
     if device_cooldown is not None and device_cooldown < 0:
         device_cooldown = None
 
+    importance_value = user_input.get(CONF_IMPORTANCE, DEFAULT_IMPORTANCE)
+    importance = (
+        int(importance_value)
+        if isinstance(importance_value, (int, float))
+        else DEFAULT_IMPORTANCE
+    )
+
     sensor_config: dict[str, Any] = {
-        CONF_ENTITY_ID: sensor_entity_id,
+        CONF_ENTITY_ID: sensor_entity_id_str,
         CONF_NAME: name_to_use,
-        CONF_IMPORTANCE: user_input.get(CONF_IMPORTANCE, DEFAULT_IMPORTANCE),
-        CONF_LAST_RESORT: user_input.get(CONF_LAST_RESORT, False),
-        CONF_APPLIANCE: appliance_entity_id,
+        CONF_IMPORTANCE: importance,
+        CONF_LAST_RESORT: bool(user_input.get(CONF_LAST_RESORT, False)),
+        CONF_APPLIANCE: appliance_entity_id_str,
     }
 
     if device_cooldown is not None:
@@ -396,7 +407,7 @@ class PowerLoadBalancerConfigFlow(ConfigFlow, domain=DOMAIN):
                 ]
                 self._config_data[CONF_POWER_BUDGET_WATT] = power_budget
                 cooldown = user_input.get(CONF_COOLDOWN_SECONDS)
-                if cooldown is not None:
+                if isinstance(cooldown, (int, float)):
                     self._config_data[CONF_COOLDOWN_SECONDS] = int(cooldown)
                 else:
                     self._config_data[CONF_COOLDOWN_SECONDS] = DEFAULT_COOLDOWN_SECONDS
@@ -559,8 +570,11 @@ class PowerLoadBalancerOptionsFlow(OptionsFlow):
 
         """
         self._config_entry = config_entry
-        data_source = config_entry.options or config_entry.data
-        self._config_data: dict[str, Any] = dict(data_source)
+        data_source = {
+            **config_entry.data,
+            **config_entry.options,
+        }
+        self._config_data: dict[str, Any] = deepcopy(dict(data_source))
 
     async def async_step_init(
         self,
@@ -645,6 +659,21 @@ class PowerLoadBalancerOptionsFlow(OptionsFlow):
             if action == "add_sensor":
                 return await self.async_step_add_sensor()
             if action == "finish":
+                _LOGGER.debug(
+                    "Saving options flow data",
+                    extra={
+                        "power_sensor_count": len(
+                            self._config_data.get(CONF_POWER_SENSORS, [])
+                        ),
+                        "main_power_sensor": self._config_data.get(
+                            CONF_MAIN_POWER_SENSOR
+                        ),
+                    },
+                )
+                self.hass.config_entries.async_update_entry(
+                    self._config_entry,
+                    options=deepcopy(self._config_data),
+                )
                 return self.async_create_entry(title="", data=self._config_data)
             if str(action).startswith("edit_sensor_"):
                 try:
@@ -783,7 +812,7 @@ class PowerLoadBalancerOptionsFlow(OptionsFlow):
                 CONF_POWER_BUDGET_WATT
             ]
             cooldown = user_input.get(CONF_COOLDOWN_SECONDS)
-            if cooldown is not None:
+            if isinstance(cooldown, (int, float)):
                 self._config_data[CONF_COOLDOWN_SECONDS] = int(cooldown)
             else:
                 self._config_data[CONF_COOLDOWN_SECONDS] = DEFAULT_COOLDOWN_SECONDS

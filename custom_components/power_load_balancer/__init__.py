@@ -60,7 +60,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             )
 
         config_data = {
-            **(entry.options or entry.data),
+            **entry.data,
+            **entry.options,
             "entry_id": entry.entry_id,
             "config_entry": entry,
         }
@@ -93,6 +94,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
         await _async_register_services(hass, entry)
 
+        entry.async_on_unload(entry.add_update_listener(_async_update_listener))
+
         logger.info("Power Load Balancer integration setup complete")
     except ConfigurationError:
         logger.exception("Configuration error during setup")
@@ -119,6 +122,8 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         logger.info(
             "Unloading Power Load Balancer integration", entry_id=entry.entry_id
         )
+
+        unload_ok = True
 
         if entry.entry_id in hass.data.get(DOMAIN, {}):
             power_balancer = hass.data[DOMAIN][entry.entry_id]
@@ -147,6 +152,11 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         return False
     else:
         return unload_ok
+
+
+async def _async_update_listener(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Reload config entry when options are updated."""
+    await hass.config_entries.async_reload(entry.entry_id)
 
 
 async def _async_register_services(hass: HomeAssistant, entry: ConfigEntry) -> None:
@@ -256,8 +266,5 @@ def _get_power_balancer_for_entity(
     for power_balancer in domain_data.values():
         if power_balancer.manages_entity(entity_id):
             return power_balancer
-
-    if domain_data:
-        return next(iter(domain_data.values()))
 
     return None

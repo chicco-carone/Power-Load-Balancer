@@ -256,9 +256,19 @@ class PowerLoadBalancer:
             new_state.state,
         )
 
-        if new_state.state == "on":
+        is_climate = entity_id.startswith("climate.")
+        old_state_value = old_state.state if old_state else None
+
+        if is_climate:
+            is_now_active = new_state.state not in ("off", "unknown", "unavailable")
+            was_active = old_state_value not in ("off", "unknown", "unavailable", None)
+        else:
+            is_now_active = new_state.state == "on"
+            was_active = old_state_value == "on"
+
+        if is_now_active and not was_active:
             await self._handle_appliance_turn_on(entity_id)
-        elif new_state.state == "off" and old_state and old_state.state == "on":
+        elif not is_now_active and was_active:
             self._handle_appliance_turn_off(entity_id)
 
         self.async_check_and_balance()

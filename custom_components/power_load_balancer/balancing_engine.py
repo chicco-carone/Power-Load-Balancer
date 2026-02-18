@@ -63,6 +63,16 @@ class BalancingEngine:
         self._monitored_sensors = monitored_sensors
         self._power_budget = power_budget
 
+    def _is_climate_entity(self, entity_id: str) -> bool:
+        """Check if an entity is a climate entity."""
+        return entity_id.startswith("climate.")
+
+    def _is_appliance_active(self, entity_id: str, state: str) -> bool:
+        """Check if an appliance is in an active state."""
+        if self._is_climate_entity(entity_id):
+            return state not in ("off", "unknown", "unavailable")
+        return state == "on"
+
     @callback
     def balance_up(
         self,
@@ -179,7 +189,9 @@ class BalancingEngine:
 
             if (
                 appliance_state
-                and appliance_state.state == "on"
+                and self._is_appliance_active(
+                    appliance_entity_id, appliance_state.state
+                )
                 and not is_appliance_balanced_off_callback(appliance_entity_id)
                 and not is_last_resort
             ):
@@ -208,9 +220,8 @@ class BalancingEngine:
                         appliance_state_before = self.hass.states.get(
                             inner_appliance_id
                         )
-                        if (
-                            appliance_state_before
-                            and appliance_state_before.state != "on"
+                        if appliance_state_before and not self._is_appliance_active(
+                            inner_appliance_id, appliance_state_before.state
                         ):
                             _LOGGER.debug(
                                 "Skipping turn_off: appliance %s already in %s",
