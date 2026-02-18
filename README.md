@@ -57,7 +57,7 @@ After installation and restart:
         *   Optionally provide a **Name** for this configuration (defaults to the sensor's friendly name).
         *   Set the **Importance** (1 being highest priority to keep on, 10 being lowest priority).
         *   Check the **Last Resort** box if this appliance should only be turned off as a last resort.
-        *   Select the **Controllable Appliance** (switch or light entity) associated with this sensor.
+        *   Select the **Controllable Appliance** (switch, light or climate entity) associated with this sensor.
         *   Optionally override the **Cooldown Time** for this specific appliance.
     *   You can add multiple monitored sensors and their associated appliances.
     *   You can remove configured sensors from the main configuration screen.
@@ -94,6 +94,15 @@ These services provide enhanced logging in Home Assistant's logbook and logs, ma
 ## Contributing
 
 Contributions are welcome! If you find a bug or have an idea for a new feature, please open an issue or submit a pull request on the GitHub repository.
+
+### To get started with development:
+1.  Fork the repository and clone it to your local machine.
+2.  Create a new branch for your feature or bug fix.
+3.  Make sure to install the required dependencies (I recommend using `uv`)
+4.  Make sure to use the provided `configuration.yaml` since it contains necessary template sensors for testing and make sure to include the `template_climate` custom component since its needed for a custom template hvac.
+5.  Test your changes thoroughly.
+6.  Commit your changes with clear messages and push to your fork.
+7.  Open a pull request against the main repository with a clear description of your changes.
 
 ## Planned Features
 - [ ] Support for solar energy in calculation
