@@ -303,3 +303,13 @@ class PowerMonitor:
         """Clear all power tracking data."""
         self._current_sensor_power.clear()
         self._estimated_total_power = 0.0
+
+    def get_diagnostics_snapshot(self) -> dict[str, Any]:
+        """Return runtime diagnostics data for troubleshooting."""
+        return {
+            "main_power_sensor_entity_id": self._main_power_sensor_entity_id,
+            "power_budget_watt": self._power_budget,
+            "estimated_total_power_watt": self._estimated_total_power,
+            "tracked_sensor_count": len(self._current_sensor_power),
+            "tracked_sensor_power_watt": dict(self._current_sensor_power),
+        }

@@ -1,5 +1,11 @@
 {
   "device_unavailable": "Il dispositivo {entity_id} non è disponibile. Controlla la sua connessione o, se non viene più utilizzato, rimuovilo dalla configurazione dell'integrazione.",
+  "issues": {
+    "device_unavailable": {
+      "title": "Entità non disponibile per il bilanciamento",
+      "description": "L'entità configurata {entity_id} non è disponibile, quindi Power Load Balancer non può usarla per il bilanciamento. Controlla lo stato e la disponibilità dell'entità, oppure rimuovila dalla configurazione dell'integrazione se non viene più usata."
+    }
+  },
   "services": {
     "turn_off_appliance": {
       "name": "Spegni dispositivo",

@@ -62,6 +62,7 @@ class BalancingEngine:
         self.hass = hass
         self._monitored_sensors = monitored_sensors
         self._power_budget = power_budget
+        self._reported_balance_down_failure = False
 
     def _is_climate_entity(self, entity_id: str) -> bool:
         """Check if an entity is a climate entity."""
@@ -207,15 +208,19 @@ class BalancingEngine:
                     expected_power_reduction,
                 )
 
+                optimistic_reduction = 0.0
                 if expected_power_reduction > 0:
-                    reduce_estimated_power_callback(expected_power_reduction)
+                    optimistic_reduction = expected_power_reduction
+                    reduce_estimated_power_callback(optimistic_reduction)
                     _LOGGER.debug(
                         "Optimistically reduced estimated power by %s W for %s",
-                        expected_power_reduction,
+                        optimistic_reduction,
                         appliance_entity_id,
                     )
 
-                async def turn_off_task(inner_appliance_id: str) -> None:
+                async def turn_off_task(
+                    inner_appliance_id: str, reduced_power: float
+                ) -> None:
                     try:
                         appliance_state_before = self.hass.states.get(
                             inner_appliance_id
@@ -236,14 +241,31 @@ class BalancingEngine:
                             f"{self._power_budget} W",
                         )
                     except Exception:
+                        if reduced_power > 0:
+                            reduce_estimated_power_callback(-reduced_power)
+                            _LOGGER.debug(
+                                "Restored estimated power by %s W for %s after "
+                                "turn-off failure",
+                                reduced_power,
+                                inner_appliance_id,
+                            )
                         _LOGGER.exception(
                             "Failed to turn off appliance %s", inner_appliance_id
                         )
 
-                self.hass.async_create_task(turn_off_task(appliance_entity_id))
+                self.hass.async_create_task(
+                    turn_off_task(appliance_entity_id, optimistic_reduction)
+                )
+                self._reported_balance_down_failure = False
                 return
 
-        _LOGGER.warning(
-            "Could not balance power below budget by turning off non-last-resort "
-            "appliances."
-        )
+        if self._reported_balance_down_failure:
+            _LOGGER.debug(
+                "Still unable to balance power using non-last-resort appliances"
+            )
+        else:
+            _LOGGER.warning(
+                "Could not balance power below budget by turning off non-last-resort "
+                "appliances."
+            )
+            self._reported_balance_down_failure = True

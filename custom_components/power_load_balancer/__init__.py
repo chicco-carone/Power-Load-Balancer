@@ -203,7 +203,7 @@ async def _handle_turn_off_appliance_service(call: ServiceCall) -> None:
         entity_id = call.data[ATTR_ENTITY_ID]
         reason = call.data.get(ATTR_REASON, "")
 
-        logger.info(
+        logger.debug(
             "Turn off appliance service called",
             entity_id=entity_id,
             reason=reason,
@@ -234,7 +234,7 @@ async def _handle_turn_on_appliance_service(call: ServiceCall) -> None:
         entity_id = call.data[ATTR_ENTITY_ID]
         reason = call.data.get(ATTR_REASON, "")
 
-        logger.info(
+        logger.debug(
             "Turn on appliance service called",
             entity_id=entity_id,
             reason=reason,

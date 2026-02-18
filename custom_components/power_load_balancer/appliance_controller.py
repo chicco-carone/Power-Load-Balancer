@@ -465,7 +465,7 @@ class ApplianceController:
                     )
                     await asyncio.sleep(delay_seconds)
 
-                    logger.info(
+                    logger.debug(
                         "Auto turn-on timer expired", entity_id=entity_to_restore
                     )
 
@@ -493,7 +493,7 @@ class ApplianceController:
                     )
 
                     if available_budget < expected_power_value:
-                        logger.warning(
+                        logger.debug(
                             "Cannot auto turn-on: Insufficient power headroom",
                             entity_id=entity_to_restore,
                             available_budget=available_budget,
@@ -560,7 +560,7 @@ class ApplianceController:
             appliance_state = validate_entity_state(self.hass, entity_id)
 
             if not self._is_appliance_active(entity_id, appliance_state.state):
-                logger.warning(
+                logger.debug(
                     "Appliance is not in an active state",
                     entity_id=entity_id,
                     current_state=appliance_state.state,
@@ -692,7 +692,7 @@ class ApplianceController:
         )
 
         try:
-            logger.info(
+            logger.debug(
                 "Service turn_off_appliance called",
                 entity_id=entity_id,
                 reason=reason,
@@ -703,7 +703,7 @@ class ApplianceController:
             appliance_state = validate_entity_state(self.hass, entity_id)
 
             if not self._is_appliance_active(entity_id, appliance_state.state):
-                logger.warning(
+                logger.debug(
                     "Appliance is not in an active state",
                     entity_id=entity_id,
                     current_state=appliance_state.state,
@@ -851,7 +851,7 @@ class ApplianceController:
         )
 
         try:
-            logger.info(
+            logger.debug(
                 "Service turn_on_appliance called",
                 entity_id=entity_id,
                 reason=reason,
@@ -862,7 +862,7 @@ class ApplianceController:
             appliance_state = validate_entity_state(self.hass, entity_id)
 
             if not self._is_appliance_off(entity_id, appliance_state.state):
-                logger.warning(
+                logger.debug(
                     "Appliance is not in 'off' state",
                     entity_id=entity_id,
                     current_state=appliance_state.state,
@@ -968,3 +968,20 @@ class ApplianceController:
         self._expected_power_restoration.clear()
         self._balanced_off_appliances.clear()
         self._previous_hvac_modes.clear()
+
+    def get_diagnostics_snapshot(self) -> dict[str, Any]:
+        """Return runtime diagnostics data for troubleshooting."""
+        scheduled_tasks = {
+            entity_id: {
+                "done": task.done(),
+                "cancelled": task.cancelled(),
+            }
+            for entity_id, task in self._scheduled_auto_turn_ons.items()
+        }
+
+        return {
+            "balanced_off_appliances": dict(self._balanced_off_appliances),
+            "expected_power_restoration_watt": dict(self._expected_power_restoration),
+            "scheduled_auto_turn_on_tasks": scheduled_tasks,
+            "stored_previous_hvac_modes": dict(self._previous_hvac_modes),
+        }

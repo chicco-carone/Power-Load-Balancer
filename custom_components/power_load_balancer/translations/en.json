@@ -1,5 +1,11 @@
 {
   "device_unavailable": "Device {entity_id} is unavailable. Please check its connection or if its not used anymore remove it from the integration configuration",
+  "issues": {
+    "device_unavailable": {
+      "title": "Entity unavailable for balancing",
+      "description": "The configured entity {entity_id} is unavailable, so Power Load Balancer cannot use it for balancing. Check the entity state and availability, or remove it from this integration's configuration if it is no longer used."
+    }
+  },
   "services": {
     "turn_off_appliance": {
       "name": "Turn Off Appliance",
