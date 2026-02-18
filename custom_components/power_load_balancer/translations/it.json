@@ -1,0 +1,190 @@
+{
+  "device_unavailable": "Il dispositivo {entity_id} non è disponibile. Controlla la sua connessione o, se non viene più utilizzato, rimuovilo dalla configurazione dell'integrazione.",
+  "services": {
+    "turn_off_appliance": {
+      "name": "Spegni dispositivo",
+      "description": "Spegni un dispositivo con registrazione personalizzata della motivazione",
+      "fields": {
+        "entity_id": {
+          "name": "ID Entità",
+          "description": "L'ID entità del dispositivo da spegnere"
+        },
+        "reason": {
+          "name": "Motivazione",
+          "description": "Motivo per cui il dispositivo viene spento (opzionale)"
+        }
+      }
+    },
+    "turn_on_appliance": {
+      "name": "Accendi dispositivo",
+      "description": "Accendi un dispositivo con registrazione personalizzata della motivazione",
+      "fields": {
+        "entity_id": {
+          "name": "ID Entità",
+          "description": "L'ID entità del dispositivo da accendere"
+        },
+        "reason": {
+          "name": "Motivazione",
+          "description": "Motivo per cui il dispositivo viene acceso (opzionale)"
+        }
+      }
+    }
+  },
+  "config": {
+    "step": {
+      "user": {
+        "menu": {
+          "edit_main_sensor": "Configura sensore principale",
+          "add_sensor": "Aggiungi nuovo sensore monitorato",
+          "edit_sensor_{i}": "Modifica: {sensor_name}",
+          "finish": "Termina configurazione"
+        },
+        "data": {
+          "action": "Azione"
+        },
+        "description": "Benvenuto nella configurazione di Power Load Balancer. Configura il sensore di potenza principale e aggiungi sensori di potenza monitorati con i relativi dispositivi.",
+        "title": "Configurazione Power Load Balancer",
+        "abort": {
+          "invalid_edit_action": "Azione non valida selezionata per la modifica.",
+          "main_sensor_required": "Configura il sensore di potenza principale prima di terminare."
+        }
+      },
+      "main_config": {
+        "menu": {
+          "edit_main_sensor": "Configura sensore principale",
+          "add_sensor": "Aggiungi nuovo sensore monitorato",
+          "edit_sensor_{i}": "Modifica: {sensor_name}",
+          "finish": "Termina configurazione"
+        },
+        "data": {
+          "action": "Azione"
+        },
+        "description": "Configura il sensore di potenza principale e il budget totale di potenza.",
+        "title": "Configurazione Power Load Balancer",
+        "abort": {
+          "main_sensor_required": "È richiesto il sensore di potenza principale.",
+          "valid_budget_required": "È richiesto un budget di potenza valido (maggiore di 0)."
+        }
+      },
+      "edit_main_sensor": {
+        "data": {
+          "main_power_sensor": "Sensore di potenza principale",
+          "power_budget_watt": "Budget di potenza (Watt)",
+          "cooldown_seconds": "Tempo di attesa (secondi)"
+        },
+        "description": "Configura il sensore di potenza principale, il budget di potenza e il tempo di attesa predefinito prima che i dispositivi possano essere riaccesi dopo lo spegnimento.",
+        "title": "Modifica impostazioni sensore principale",
+        "errors": {
+          "valid_budget_required": "Inserisci un budget di potenza valido (un intero positivo)."
+        }
+      },
+      "add_sensor": {
+        "data": {
+          "entity_id": "Sensore di potenza monitorato",
+          "name": "Nome personalizzato (opzionale)",
+          "importance": "Importanza (1=Bassa, 10=Alta)",
+          "last_resort": "Ultima risorsa (spegni solo se assolutamente necessario)",
+          "appliance": "Elettrodomestico controllabile (Interruttore o Luce)",
+          "device_cooldown": "Override tempo di raffreddamento dispositivo (secondi, lascia vuoto per predefinito)"
+        },
+        "description": "Aggiungi un nuovo sensore di potenza da monitorare e il relativo elettrodomestico controllabile.",
+        "title": "Aggiungi sensore monitorato",
+        "errors": {
+          "select_sensor_required": "Seleziona un sensore di potenza monitorato.",
+          "select_appliance_required": "Seleziona l'elettrodomestico controllabile per questo sensore."
+        }
+      },
+      "edit_sensor": {
+        "data": {
+          "entity_id": "Sensore di potenza monitorato",
+          "name": "Nome personalizzato (opzionale)",
+          "importance": "Importanza (1=Bassa, 10=Alta)",
+          "last_resort": "Ultima scelta (spegni solo se assolutamente necessario)",
+          "appliance": "Dispositivo controllabile (Interruttore o Luce)",
+          "device_cooldown": "Override tempo di raffreddamento dispositivo (secondi, lascia vuoto per predefinito)",
+          "remove_sensor": "Rimuovi sensore"
+        },
+        "description": "Modifica le impostazioni di questo sensore di potenza monitorato e del relativo dispositivo.",
+        "title": "Modifica sensore monitorato",
+        "errors": {
+          "select_sensor_required": "Seleziona un sensore di potenza monitorato.",
+          "select_appliance_required": "Seleziona il dispositivo controllabile per questo sensore."
+        },
+        "abort": {
+          "invalid_sensor_index": "Sensore non valido selezionato per la modifica."
+        }
+      }
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "data": {
+          "main_power_sensor": "Sensore di potenza principale",
+          "power_budget_watt": "Budget di potenza (Watt)",
+          "cooldown_seconds": "Tempo di attesa (secondi)"
+        },
+        "description": "Modifica il sensore di potenza principale, il budget di potenza e le impostazioni di attesa.",
+        "title": "Modifica impostazioni principali"
+      },
+      "sensor_menu": {
+        "menu": {
+          "edit_main_sensor": "Modifica impostazioni sensore principale",
+          "add_sensor": "Aggiungi nuovo sensore monitorato",
+          "edit_sensor_{i}": "Modifica: {sensor_name}",
+          "finish": "Salva configurazione"
+        },
+        "data": {
+          "action": "Azione"
+        },
+        "description": "Gestisci i tuoi sensori di potenza monitorati e i relativi elettrodomestici.",
+        "title": "Gestisci sensori monitorati"
+      },
+      "add_sensor": {
+        "data": {
+          "entity_id": "Sensore di potenza monitorato",
+          "name": "Nome personalizzato (opzionale)",
+          "importance": "Importanza (1=Bassa, 10=Alta)",
+          "last_resort": "Ultima scelta (spegni solo se assolutamente necessario)",
+          "appliance": "Dispositivo controllabile (Interruttore o Luce)",
+          "device_cooldown": "Override tempo di attesa dispositivo (secondi, lascia vuoto per predefinito)"
+        },
+        "description": "Aggiungi un nuovo sensore di potenza da monitorare e il relativo dispositivo controllabile.",
+        "title": "Aggiungi sensore monitorato",
+        "errors": {
+          "select_sensor_required": "Seleziona un sensore di potenza monitorato.",
+          "select_appliance_required": "Seleziona il dispositivo controllabile per questo sensore."
+        }
+      },
+      "edit_sensor": {
+        "data": {
+          "entity_id": "Sensore di potenza monitorato",
+          "name": "Nome personalizzato (opzionale)",
+          "importance": "Importanza (1=Bassa, 10=Alta)",
+          "last_resort": "Ultima scelta (spegni solo se assolutamente necessario)",
+          "appliance": "Dispositivo controllabile (Interruttore o Luce)",
+          "device_cooldown": "Override tempo di attesa dispositivo (secondi, lascia vuoto per predefinito)",
+          "remove_sensor": "Rimuovi sensore"
+        },
+        "description": "Modifica le impostazioni di questo sensore di potenza monitorato e del relativo dispositivo controllabile.",
+        "title": "Modifica sensore monitorato",
+        "errors": {
+          "select_sensor_required": "Seleziona un sensore di potenza monitorato.",
+          "select_appliance_required": "Seleziona il dispositivo controllabile per questo sensore."
+        },
+        "abort": {
+          "invalid_sensor_index": "Sensore non valido selezionato per la modifica."
+        }
+      },
+      "edit_main_sensor": {
+        "data": {
+          "main_power_sensor": "Sensore di potenza principale",
+          "power_budget_watt": "Budget di potenza (Watt)",
+          "cooldown_seconds": "Tempo di attesa (secondi)"
+        },
+        "description": "Modifica il sensore di potenza principale, il budget di potenza e le impostazioni di attesa.",
+        "title": "Modifica impostazioni sensore principale"
+      }
+    }
+  }
+}
