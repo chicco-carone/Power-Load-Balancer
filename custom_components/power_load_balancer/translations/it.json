@@ -1,5 +1,4 @@
 {
-  "device_unavailable": "Il dispositivo {entity_id} non è disponibile. Controlla la sua connessione o, se non viene più utilizzato, rimuovilo dalla configurazione dell'integrazione.",
   "issues": {
     "device_unavailable": {
       "title": "Entità non disponibile per il bilanciamento",

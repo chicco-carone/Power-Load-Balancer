@@ -1,6 +1,7 @@
 """Constants for the Power Load Balancer integration."""
 
 DOMAIN = "power_load_balancer"
+ISSUE_TRANSLATION_KEY_DEVICE_UNAVAILABLE = "device_unavailable"
 
 CONF_MAIN_POWER_SENSOR = "main_power_sensor"
 CONF_POWER_SENSORS = "power_sensors"

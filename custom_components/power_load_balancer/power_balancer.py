@@ -35,6 +35,7 @@ from .const import (
     DEVICE_MANUFACTURER,
     DEVICE_MODEL,
     DOMAIN,
+    ISSUE_TRANSLATION_KEY_DEVICE_UNAVAILABLE,
 )
 from .context_logger import ContextLogger
 from .exceptions import ConfigurationError
@@ -233,7 +234,7 @@ class PowerLoadBalancer:
             self._get_unavailable_issue_id(entity_id),
             is_fixable=False,
             severity=ir.IssueSeverity.WARNING,
-            translation_key="device_unavailable",
+            translation_key=ISSUE_TRANSLATION_KEY_DEVICE_UNAVAILABLE,
             translation_placeholders={"entity_id": entity_id},
         )
 

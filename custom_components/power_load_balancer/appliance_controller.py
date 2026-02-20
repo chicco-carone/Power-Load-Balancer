@@ -19,6 +19,7 @@ from .const import (
     CONF_DEVICE_COOLDOWN,
     DEFAULT_COOLDOWN_SECONDS,
     DOMAIN,
+    ISSUE_TRANSLATION_KEY_DEVICE_UNAVAILABLE,
 )
 from .context_logger import ContextLogger
 from .exceptions import (
@@ -633,7 +634,7 @@ class ApplianceController:
                 f"{entity_id}_unavailable",
                 is_fixable=False,
                 severity=ir.IssueSeverity.ERROR,
-                translation_key="device_unavailable",
+                translation_key=ISSUE_TRANSLATION_KEY_DEVICE_UNAVAILABLE,
                 translation_placeholders={"entity_id": entity_id},
             )
             if self._event_log_sensor:
@@ -791,7 +792,7 @@ class ApplianceController:
                 f"{entity_id}_unavailable",
                 is_fixable=False,
                 severity=ir.IssueSeverity.ERROR,
-                translation_key="device_unavailable",
+                translation_key=ISSUE_TRANSLATION_KEY_DEVICE_UNAVAILABLE,
                 translation_placeholders={"entity_id": entity_id},
             )
             if self._event_log_sensor:
