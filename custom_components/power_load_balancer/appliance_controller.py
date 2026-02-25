@@ -20,6 +20,7 @@ from .const import (
     DEFAULT_COOLDOWN_SECONDS,
     DOMAIN,
     ISSUE_TRANSLATION_KEY_DEVICE_UNAVAILABLE,
+    NON_BINARY_ACTIVE_STATE_DOMAINS,
 )
 from .context_logger import ContextLogger
 from .exceptions import (
@@ -219,6 +220,12 @@ class ApplianceController:
         """
         return entity_id.startswith("climate.")
 
+    def _is_non_binary_active_state_entity(self, entity_id: str) -> bool:
+        """Check if an entity uses non-binary active states."""
+        return entity_id.startswith(
+            tuple(f"{domain}." for domain in NON_BINARY_ACTIVE_STATE_DOMAINS)
+        )
+
     def _get_supported_hvac_modes(self, entity_id: str) -> list[str]:
         """Get supported HVAC modes for a climate entity."""
         state = self.hass.states.get(entity_id)
@@ -241,6 +248,51 @@ class ApplianceController:
             return appliance_state.state
 
         return None
+
+    def _prepare_climate_turn_off(
+        self, entity_id: str, appliance_state: State, logger: ContextLogger, reason: str
+    ) -> tuple[str, dict[str, str]]:
+        """
+        Prepare climate entity turn-off with HVAC mode saving.
+
+        Saves the current HVAC mode before turning off the climate entity.
+
+        Args:
+            entity_id: Entity ID of the climate entity.
+            appliance_state: Current state of the entity.
+            logger: Context logger for this operation.
+            reason: Reason for turning off the appliance.
+
+        Returns:
+            Tuple of (service, service_data)
+
+        """
+        current_hvac_mode = self._get_current_hvac_mode(appliance_state)
+        supported_hvac_modes = self._get_supported_hvac_modes(entity_id)
+
+        if current_hvac_mode is not None and self._is_valid_active_hvac_mode(
+            current_hvac_mode, supported_hvac_modes
+        ):
+            self.set_previous_hvac_mode(entity_id, str(current_hvac_mode))
+        else:
+            logger.warning(
+                "Climate is active but current HVAC mode cannot be saved",
+                entity_id=entity_id,
+                current_hvac_mode=current_hvac_mode,
+                supported_hvac_modes=supported_hvac_modes,
+            )
+
+        logger.debug(
+            "Turning off climate entity",
+            entity_id=entity_id,
+            previous_mode=self.get_previous_hvac_mode(entity_id),
+            reason=reason,
+        )
+
+        return (
+            "set_hvac_mode",
+            {"entity_id": entity_id, "hvac_mode": "off"},
+        )
 
     def _is_valid_active_hvac_mode(
         self, mode: str | None, supported_modes: list[str]
@@ -342,7 +394,7 @@ class ApplianceController:
             True if the appliance is active, False otherwise.
 
         """
-        if self._is_climate_entity(entity_id):
+        if self._is_non_binary_active_state_entity(entity_id):
             return state not in ("off", "unknown", "unavailable")
         return state == "on"
 
@@ -571,28 +623,8 @@ class ApplianceController:
             domain = entity_id.split(".", maxsplit=1)[0]
 
             if self._is_climate_entity(entity_id):
-                current_hvac_mode = self._get_current_hvac_mode(appliance_state)
-                supported_hvac_modes = self._get_supported_hvac_modes(entity_id)
-
-                if current_hvac_mode is not None and self._is_valid_active_hvac_mode(
-                    current_hvac_mode, supported_hvac_modes
-                ):
-                    self.set_previous_hvac_mode(entity_id, str(current_hvac_mode))
-                else:
-                    logger.warning(
-                        "Climate is active but current HVAC mode cannot be saved",
-                        entity_id=entity_id,
-                        current_hvac_mode=current_hvac_mode,
-                        supported_hvac_modes=supported_hvac_modes,
-                    )
-
-                service = "set_hvac_mode"
-                service_data = {"entity_id": entity_id, "hvac_mode": "off"}
-                logger.debug(
-                    "Turning off climate entity",
-                    entity_id=entity_id,
-                    previous_mode=self.get_previous_hvac_mode(entity_id),
-                    reason=reason,
+                service, service_data = self._prepare_climate_turn_off(
+                    entity_id, appliance_state, logger, reason
                 )
             else:
                 service = "turn_off"
@@ -714,28 +746,8 @@ class ApplianceController:
             domain = entity_id.split(".", maxsplit=1)[0]
 
             if self._is_climate_entity(entity_id):
-                current_hvac_mode = self._get_current_hvac_mode(appliance_state)
-                supported_hvac_modes = self._get_supported_hvac_modes(entity_id)
-
-                if current_hvac_mode is not None and self._is_valid_active_hvac_mode(
-                    current_hvac_mode, supported_hvac_modes
-                ):
-                    self.set_previous_hvac_mode(entity_id, str(current_hvac_mode))
-                else:
-                    logger.warning(
-                        "Climate is active but current HVAC mode cannot be saved",
-                        entity_id=entity_id,
-                        current_hvac_mode=current_hvac_mode,
-                        supported_hvac_modes=supported_hvac_modes,
-                    )
-
-                service = "set_hvac_mode"
-                service_data = {"entity_id": entity_id, "hvac_mode": "off"}
-                logger.debug(
-                    "Calling set_hvac_mode service for climate entity",
-                    entity_id=entity_id,
-                    previous_mode=self.get_previous_hvac_mode(entity_id),
-                    reason=reason,
+                service, service_data = self._prepare_climate_turn_off(
+                    entity_id, appliance_state, logger, reason
                 )
             else:
                 service = "turn_off"
