@@ -90,7 +90,7 @@
           "importance": "Importance (1=Low, 10=High)",
           "last_resort": "Last Resort (Turn off only if absolutely necessary)",
           "appliance": "Controllable Appliance (Switch, Light, Climate or Media Player)",
-          "device_cooldown": "Device Cooldown Override (seconds, leave empty for default)"
+          "device_cooldown": "Device Cooldown Override (seconds, leave -1 for default)"
         },
         "description": "Add a new power sensor to monitor and its corresponding controllable appliance.",
         "title": "Add Monitored Sensor",
@@ -106,7 +106,7 @@
           "importance": "Importance (1=Low, 10=High)",
           "last_resort": "Last Resort (Turn off only if absolutely necessary)",
           "appliance": "Controllable Appliance (Switch, Light, Climate or Media Player)",
-          "device_cooldown": "Device Cooldown Override (seconds, leave empty for default)",
+          "device_cooldown": "Device Cooldown Override (seconds, leave -1 for default)",
           "remove_sensor": "Remove Sensor"
         },
         "description": "Edit the settings for this monitored power sensor and its appliance.",
@@ -152,7 +152,7 @@
           "importance": "Importance (1=Low, 10=High)",
           "last_resort": "Last Resort (Turn off only if absolutely necessary)",
           "appliance": "Controllable Appliance (Switch, Light, Climate or Media Player)",
-          "device_cooldown": "Device Cooldown Override (seconds, leave empty for default)"
+          "device_cooldown": "Device Cooldown Override (seconds, leave -1 for default)"
         },
         "description": "Add a new power sensor to monitor and its corresponding controllable appliance.",
         "title": "Add Monitored Sensor",
@@ -168,7 +168,7 @@
           "importance": "Importance (1=Low, 10=High)",
           "last_resort": "Last Resort (Turn off only if absolutely necessary)",
           "appliance": "Controllable Appliance (Switch, Light, Climate or Media Player)",
-          "device_cooldown": "Device Cooldown Override (seconds, leave empty for default)",
+          "device_cooldown": "Device Cooldown Override (seconds, leave -1 for default)",
           "remove_sensor": "Remove Sensor"
         },
         "description": "Edit the settings for this monitored power sensor and its appliance.",

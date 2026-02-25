@@ -90,7 +90,7 @@
           "importance": "Importanza (1=Bassa, 10=Alta)",
           "last_resort": "Ultima risorsa (spegni solo se assolutamente necessario)",
           "appliance": "Elettrodomestico controllabile (Interruttore, Luce, Clima o Lettore Multimediale)",
-          "device_cooldown": "Override tempo di raffreddamento dispositivo (secondi, lascia vuoto per predefinito)"
+          "device_cooldown": "Override tempo di raffreddamento dispositivo (secondi, lascia -1 per predefinito)"
         },
         "description": "Aggiungi un nuovo sensore di potenza da monitorare e il relativo elettrodomestico controllabile.",
         "title": "Aggiungi sensore monitorato",
@@ -106,7 +106,7 @@
           "importance": "Importanza (1=Bassa, 10=Alta)",
           "last_resort": "Ultima scelta (spegni solo se assolutamente necessario)",
           "appliance": "Dispositivo controllabile (Interruttore, Luce, Clima o Lettore Multimediale)",
-          "device_cooldown": "Override tempo di raffreddamento dispositivo (secondi, lascia vuoto per predefinito)",
+          "device_cooldown": "Override tempo di raffreddamento dispositivo (secondi, lascia -1 per predefinito)",
           "remove_sensor": "Rimuovi sensore"
         },
         "description": "Modifica le impostazioni di questo sensore di potenza monitorato e del relativo dispositivo.",
@@ -152,7 +152,7 @@
           "importance": "Importanza (1=Bassa, 10=Alta)",
           "last_resort": "Ultima scelta (spegni solo se assolutamente necessario)",
           "appliance": "Dispositivo controllabile (Interruttore, Luce, Clima o Lettore Multimediale)",
-          "device_cooldown": "Override tempo di attesa dispositivo (secondi, lascia vuoto per predefinito)"
+          "device_cooldown": "Override tempo di attesa dispositivo (secondi, lascia -1 per predefinito)"
         },
         "description": "Aggiungi un nuovo sensore di potenza da monitorare e il relativo dispositivo controllabile.",
         "title": "Aggiungi sensore monitorato",
@@ -168,7 +168,7 @@
           "importance": "Importanza (1=Bassa, 10=Alta)",
           "last_resort": "Ultima scelta (spegni solo se assolutamente necessario)",
           "appliance": "Dispositivo controllabile (Interruttore, Luce, Clima o Lettore Multimediale)",
-          "device_cooldown": "Override tempo di attesa dispositivo (secondi, lascia vuoto per predefinito)",
+          "device_cooldown": "Override tempo di attesa dispositivo (secondi, lascia -1 per predefinito)",
           "remove_sensor": "Rimuovi sensore"
         },
         "description": "Modifica le impostazioni di questo sensore di potenza monitorato e del relativo dispositivo controllabile.",
