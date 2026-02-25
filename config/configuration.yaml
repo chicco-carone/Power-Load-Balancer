@@ -73,6 +73,15 @@ input_number:
     unit_of_measurement: C
     icon: mdi:thermometer-lines
 
+  media_player_power:
+    name: "Media Player Power"
+    initial: 0.0
+    min: 0.0
+    max: 500.0
+    step: 10.0
+    unit_of_measurement: W
+    icon: mdi:speaker
+
 input_boolean:
   appliance_1_switch:
     name: "Dishwasher"
@@ -89,6 +98,10 @@ input_boolean:
   hvac_switch:
     name: "HVAC"
     icon: mdi:air-conditioner
+
+  media_player_switch:
+    name: "Media Player"
+    icon: mdi:speaker
 
 input_select:
   hvac_mode:
@@ -175,6 +188,17 @@ template:
         state_class: measurement
         icon: "mdi:air-conditioner"
 
+      - name: "Media Player Power"
+        unique_id: "media_player_power_sensor"
+        state: >-
+          {% if is_state('input_boolean.media_player_switch', 'on') %}
+            {{ states('input_number.media_player_power') | float(0) }}
+          {% else %} 0 {% endif %}
+        unit_of_measurement: W
+        device_class: power
+        state_class: measurement
+        icon: "mdi:speaker"
+
   - switch:
       - default_entity_id: switch.appliance_1
         name: "Dishwasher"
@@ -215,6 +239,19 @@ template:
             target:
               entity_id: input_boolean.appliance_3_switch
 
+      - default_entity_id: switch.media_player
+        name: "Media Player"
+        state: "{{ is_state('input_boolean.media_player_switch', 'on') }}"
+        icon: "mdi:speaker"
+        turn_on:
+          - action: input_boolean.turn_on
+            target:
+              entity_id: input_boolean.media_player_switch
+        turn_off:
+          - action: input_boolean.turn_off
+            target:
+              entity_id: input_boolean.media_player_switch
+
 climate:
   - platform: climate_template
     name: "Test HVAC Climate"
@@ -245,3 +282,20 @@ climate:
       - service: "input_boolean.turn_{{ 'off' if hvac_mode == 'off' else 'on' }}"
         target:
           entity_id: input_boolean.hvac_switch
+
+media_player:
+  - platform: universal
+    name: Test Media Player
+    unique_id: test_media_player
+    device_class: speaker
+    commands:
+      turn_on:
+        action: input_boolean.turn_on
+        target:
+          entity_id: input_boolean.media_player_switch
+      turn_off:
+        action: input_boolean.turn_off
+        target:
+          entity_id: input_boolean.media_player_switch
+    attributes:
+      state: input_boolean.media_player_switch
