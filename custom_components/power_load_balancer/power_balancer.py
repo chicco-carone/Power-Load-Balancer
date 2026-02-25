@@ -10,6 +10,7 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING, Any
 
+from homeassistant.components.media_player.const import MediaPlayerEntityFeature
 from homeassistant.const import CONF_ENTITY_ID
 from homeassistant.core import Context, callback
 from homeassistant.helpers import issue_registry as ir
@@ -36,6 +37,7 @@ from .const import (
     DEVICE_MODEL,
     DOMAIN,
     ISSUE_TRANSLATION_KEY_DEVICE_UNAVAILABLE,
+    ISSUE_TRANSLATION_KEY_DEVICE_NOT_CONTROLLABLE,
     NON_BINARY_ACTIVE_STATE_DOMAINS,
 )
 from .context_logger import ContextLogger
@@ -45,6 +47,7 @@ from .power_monitor import PowerMonitor
 _LOGGER = logging.getLogger(__name__)
 AVAILABILITY_EVENT_HISTORY_SIZE = 100
 UNAVAILABLE_ENTITY_ISSUE_PREFIX = "balancing_entity_unavailable"
+NON_CONTROLLABLE_ENTITY_ISSUE_PREFIX = "balancing_entity_not_controllable"
 
 
 class PowerLoadBalancer:
@@ -78,6 +81,7 @@ class PowerLoadBalancer:
     _was_over_budget: bool
     _unavailable_entities: dict[str, dict[str, Any]]
     _availability_events: list[dict[str, Any]]
+    _non_controllable_media_players: set[str]
 
     def __init__(
         self,
@@ -105,6 +109,7 @@ class PowerLoadBalancer:
         self._was_over_budget = False
         self._unavailable_entities = {}
         self._availability_events = []
+        self._non_controllable_media_players = set()
 
         self._main_power_sensor_entity_id = config_data[CONF_MAIN_POWER_SENSOR]
         self._monitored_sensors = config_data.get(CONF_POWER_SENSORS, [])
@@ -180,6 +185,7 @@ class PowerLoadBalancer:
             )
 
         self._initialize_availability_tracking()
+        self._initialize_controllability_tracking()
 
         _LOGGER.debug("PowerLoadBalancer setup complete.")
 
@@ -196,6 +202,14 @@ class PowerLoadBalancer:
         sanitized_entity = entity_id.replace(".", "_")
         return (
             f"{UNAVAILABLE_ENTITY_ISSUE_PREFIX}_{self.entry.entry_id}_"
+            f"{sanitized_entity}"
+        )
+
+    def _get_non_controllable_issue_id(self, entity_id: str) -> str:
+        """Return a stable issue ID for a non-controllable appliance."""
+        sanitized_entity = entity_id.replace(".", "_")
+        return (
+            f"{NON_CONTROLLABLE_ENTITY_ISSUE_PREFIX}_{self.entry.entry_id}_"
             f"{sanitized_entity}"
         )
 
@@ -309,6 +323,64 @@ class PowerLoadBalancer:
                 self._get_unavailable_issue_id(entity_id),
             )
 
+    def _clear_non_controllable_entity_issues(self) -> None:
+        """Delete all outstanding Repairs issues for non-controllable entities."""
+        for entity_id in list(self._non_controllable_media_players):
+            ir.async_delete_issue(
+                self.hass,
+                DOMAIN,
+                self._get_non_controllable_issue_id(entity_id),
+            )
+
+    def _is_media_player_controllable(self, state: Any) -> bool:
+        """Return True if a media player supports turn on/off."""
+        supported_features = state.attributes.get("supported_features", 0)
+        return bool(
+            supported_features
+            & (MediaPlayerEntityFeature.TURN_ON | MediaPlayerEntityFeature.TURN_OFF)
+        )
+
+    def _update_media_player_controllability(self, entity_id: str, state: Any) -> None:
+        """Create or clear repairs for non-controllable media players."""
+        if not entity_id.startswith("media_player."):
+            return
+
+        if state is None:
+            return
+
+        if self._is_media_player_controllable(state):
+            if entity_id in self._non_controllable_media_players:
+                ir.async_delete_issue(
+                    self.hass,
+                    DOMAIN,
+                    self._get_non_controllable_issue_id(entity_id),
+                )
+                self._non_controllable_media_players.discard(entity_id)
+            return
+
+        if entity_id in self._non_controllable_media_players:
+            return
+
+        self._non_controllable_media_players.add(entity_id)
+        ir.async_create_issue(
+            self.hass,
+            DOMAIN,
+            self._get_non_controllable_issue_id(entity_id),
+            is_fixable=False,
+            severity=ir.IssueSeverity.WARNING,
+            translation_key=ISSUE_TRANSLATION_KEY_DEVICE_NOT_CONTROLLABLE,
+            translation_placeholders={"entity_id": entity_id},
+        )
+
+    def _initialize_controllability_tracking(self) -> None:
+        """Create initial Repairs issues for non-controllable media players."""
+        for sensor_config in self._monitored_sensors:
+            entity_id = sensor_config.get(CONF_APPLIANCE)
+            if not isinstance(entity_id, str):
+                continue
+            state = self.hass.states.get(entity_id)
+            self._update_media_player_controllability(entity_id, state)
+
     async def async_cleanup(self) -> None:
         """
         Clean up the PowerLoadBalancer and unsubscribe from events.
@@ -340,8 +412,10 @@ class PowerLoadBalancer:
             self._power_monitor.clear_tracking()
             self._appliance_controller.cleanup()
             self._clear_unavailable_entity_issues()
+            self._clear_non_controllable_entity_issues()
             self._unavailable_entities.clear()
             self._availability_events.clear()
+            self._non_controllable_media_players.clear()
             self._event_log_sensor = None
 
             logger.info("PowerLoadBalancer cleanup completed successfully")
@@ -410,6 +484,7 @@ class PowerLoadBalancer:
 
         if isinstance(entity_id, str):
             self._mark_entity_available(entity_id, "appliance", state_value)
+            self._update_media_player_controllability(entity_id, new_state)
 
         _LOGGER.debug(
             "Appliance %s state changed from %s to %s",

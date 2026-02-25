@@ -2,6 +2,7 @@
 
 DOMAIN = "power_load_balancer"
 ISSUE_TRANSLATION_KEY_DEVICE_UNAVAILABLE = "device_unavailable"
+ISSUE_TRANSLATION_KEY_DEVICE_NOT_CONTROLLABLE = "device_not_controllable"
 
 CONF_MAIN_POWER_SENSOR = "main_power_sensor"
 CONF_POWER_SENSORS = "power_sensors"

@@ -3,6 +3,10 @@
     "device_unavailable": {
       "title": "Entity unavailable for balancing",
       "description": "The configured entity {entity_id} is unavailable, so Power Load Balancer cannot use it for balancing. Check the entity state and availability, or remove it from this integration's configuration if it is no longer used."
+    },
+    "device_not_controllable": {
+      "title": "Media player cannot be controlled",
+      "description": "The configured media player {entity_id} does not support turning on or off. Power Load Balancer will not be able to control it for balancing. Choose a different media player or remove it from the configuration if it should not be managed."
     }
   },
   "services": {

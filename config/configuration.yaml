@@ -82,6 +82,24 @@ input_number:
     unit_of_measurement: W
     icon: mdi:speaker
 
+  media_player_2_power:
+    name: "Media Player 2 Power"
+    initial: 0.0
+    min: 0.0
+    max: 500.0
+    step: 10.0
+    unit_of_measurement: W
+    icon: mdi:speaker
+
+  media_player_2_volume:
+    name: "Media Player 2 Volume"
+    initial: 50
+    min: 0
+    max: 100
+    step: 1
+    unit_of_measurement: "%"
+    icon: mdi:volume-high
+
 input_boolean:
   appliance_1_switch:
     name: "Dishwasher"
@@ -199,6 +217,15 @@ template:
         state_class: measurement
         icon: "mdi:speaker"
 
+      - name: "Media Player 2 Power"
+        unique_id: "media_player_2_power_sensor"
+        state: >-
+          {{ (states('input_number.media_player_2_power') | float(0)) * (states('input_number.media_player_2_volume') | float(50) / 100) | round(1) }}
+        unit_of_measurement: W
+        device_class: power
+        state_class: measurement
+        icon: "mdi:speaker"
+
   - switch:
       - default_entity_id: switch.appliance_1
         name: "Dishwasher"
@@ -299,3 +326,26 @@ media_player:
           entity_id: input_boolean.media_player_switch
     attributes:
       state: input_boolean.media_player_switch
+
+  - platform: universal
+    name: Test Media Player 2
+    unique_id: test_media_player_2
+    device_class: speaker
+    commands:
+      volume_set:
+        action: input_number.set_value
+        target:
+          entity_id: input_number.media_player_2_volume
+        data:
+          value: "{{ volume_level * 100 }}"
+      volume_up:
+        action: input_number.increment
+        target:
+          entity_id: input_number.media_player_2_volume
+      volume_down:
+        action: input_number.decrement
+        target:
+          entity_id: input_number.media_player_2_volume
+    attributes:
+      state: media_player.test_media_player_2
+      volume_level: "{{ (states('input_number.media_player_2_volume') | float(50)) / 100 }}"

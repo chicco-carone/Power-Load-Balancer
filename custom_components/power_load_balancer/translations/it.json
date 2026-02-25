@@ -3,6 +3,10 @@
     "device_unavailable": {
       "title": "Entità non disponibile per il bilanciamento",
       "description": "L'entità configurata {entity_id} non è disponibile, quindi Power Load Balancer non può usarla per il bilanciamento. Controlla lo stato e la disponibilità dell'entità, oppure rimuovila dalla configurazione dell'integrazione se non viene più usata."
+    },
+    "device_not_controllable": {
+      "title": "Lettore multimediale non controllabile",
+      "description": "Il lettore multimediale configurato {entity_id} non supporta l'accensione o lo spegnimento. Power Load Balancer non potrà controllarlo per il bilanciamento. Scegli un altro lettore multimediale o rimuovilo dalla configurazione se non deve essere gestito."
     }
   },
   "services": {
