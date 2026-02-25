@@ -13,7 +13,12 @@ from typing import TYPE_CHECKING, Any
 
 from homeassistant.core import callback
 
-from .const import CONF_APPLIANCE, CONF_IMPORTANCE, CONF_LAST_RESORT
+from .const import (
+    CONF_APPLIANCE,
+    CONF_IMPORTANCE,
+    CONF_LAST_RESORT,
+    NON_BINARY_ACTIVE_STATE_DOMAINS,
+)
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -64,13 +69,15 @@ class BalancingEngine:
         self._power_budget = power_budget
         self._reported_balance_down_failure = False
 
-    def _is_climate_entity(self, entity_id: str) -> bool:
-        """Check if an entity is a climate entity."""
-        return entity_id.startswith("climate.")
+    def _is_non_binary_active_state_entity(self, entity_id: str) -> bool:
+        """Check if an entity uses non-binary active states."""
+        return entity_id.startswith(
+            tuple(f"{domain}." for domain in NON_BINARY_ACTIVE_STATE_DOMAINS)
+        )
 
     def _is_appliance_active(self, entity_id: str, state: str) -> bool:
         """Check if an appliance is in an active state."""
-        if self._is_climate_entity(entity_id):
+        if self._is_non_binary_active_state_entity(entity_id):
             return state not in ("off", "unknown", "unavailable")
         return state == "on"
 

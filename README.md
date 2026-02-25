@@ -22,7 +22,7 @@ Before installing, ensure you have:
 
 -   Home Assistant (This has currently been tested from 2025.6 and later).
 -   Power sensors integrated into Home Assistant that provide real-time power consumption (in Watts).
--   Controllable switches or light entities integrated into Home Assistant for the appliances you want to manage.
+-   Controllable switch, light, climate, or media_player entities integrated into Home Assistant for the appliances you want to manage.
 -   HACS (Home Assistant Community Store) is recommended for easier installation and updates.
 
 ## Installation
@@ -57,7 +57,7 @@ After installation and restart:
         *   Optionally provide a **Name** for this configuration (defaults to the sensor's friendly name).
         *   Set the **Importance** (1 being highest priority to keep on, 10 being lowest priority).
         *   Check the **Last Resort** box if this appliance should only be turned off as a last resort.
-        *   Select the **Controllable Appliance** (switch, light or climate entity) associated with this sensor.
+        *   Select the **Controllable Appliance** (switch, light, climate, or media_player entity) associated with this sensor.
         *   Optionally override the **Cooldown Time** for this specific appliance.
     *   You can add multiple monitored sensors and their associated appliances.
     *   You can remove configured sensors from the main configuration screen.

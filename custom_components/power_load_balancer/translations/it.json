@@ -89,7 +89,7 @@
           "name": "Nome personalizzato (opzionale)",
           "importance": "Importanza (1=Bassa, 10=Alta)",
           "last_resort": "Ultima risorsa (spegni solo se assolutamente necessario)",
-          "appliance": "Elettrodomestico controllabile (Interruttore o Luce)",
+          "appliance": "Elettrodomestico controllabile (Interruttore, Luce, Clima o Lettore Multimediale)",
           "device_cooldown": "Override tempo di raffreddamento dispositivo (secondi, lascia vuoto per predefinito)"
         },
         "description": "Aggiungi un nuovo sensore di potenza da monitorare e il relativo elettrodomestico controllabile.",
@@ -105,7 +105,7 @@
           "name": "Nome personalizzato (opzionale)",
           "importance": "Importanza (1=Bassa, 10=Alta)",
           "last_resort": "Ultima scelta (spegni solo se assolutamente necessario)",
-          "appliance": "Dispositivo controllabile (Interruttore o Luce)",
+          "appliance": "Dispositivo controllabile (Interruttore, Luce, Clima o Lettore Multimediale)",
           "device_cooldown": "Override tempo di raffreddamento dispositivo (secondi, lascia vuoto per predefinito)",
           "remove_sensor": "Rimuovi sensore"
         },
@@ -151,7 +151,7 @@
           "name": "Nome personalizzato (opzionale)",
           "importance": "Importanza (1=Bassa, 10=Alta)",
           "last_resort": "Ultima scelta (spegni solo se assolutamente necessario)",
-          "appliance": "Dispositivo controllabile (Interruttore o Luce)",
+          "appliance": "Dispositivo controllabile (Interruttore, Luce, Clima o Lettore Multimediale)",
           "device_cooldown": "Override tempo di attesa dispositivo (secondi, lascia vuoto per predefinito)"
         },
         "description": "Aggiungi un nuovo sensore di potenza da monitorare e il relativo dispositivo controllabile.",
@@ -167,7 +167,7 @@
           "name": "Nome personalizzato (opzionale)",
           "importance": "Importanza (1=Bassa, 10=Alta)",
           "last_resort": "Ultima scelta (spegni solo se assolutamente necessario)",
-          "appliance": "Dispositivo controllabile (Interruttore o Luce)",
+          "appliance": "Dispositivo controllabile (Interruttore, Luce, Clima o Lettore Multimediale)",
           "device_cooldown": "Override tempo di attesa dispositivo (secondi, lascia vuoto per predefinito)",
           "remove_sensor": "Rimuovi sensore"
         },

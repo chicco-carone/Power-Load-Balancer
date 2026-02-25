@@ -36,6 +36,7 @@ from .const import (
     DEVICE_MODEL,
     DOMAIN,
     ISSUE_TRANSLATION_KEY_DEVICE_UNAVAILABLE,
+    NON_BINARY_ACTIVE_STATE_DOMAINS,
 )
 from .context_logger import ContextLogger
 from .exceptions import ConfigurationError
@@ -417,10 +418,12 @@ class PowerLoadBalancer:
             new_state.state,
         )
 
-        is_climate = entity_id.startswith("climate.")
+        is_non_binary_active_state_entity = entity_id.startswith(
+            tuple(f"{domain}." for domain in NON_BINARY_ACTIVE_STATE_DOMAINS)
+        )
         old_state_value = old_state.state if old_state else None
 
-        if is_climate:
+        if is_non_binary_active_state_entity:
             is_now_active = new_state.state not in ("off", "unknown", "unavailable")
             was_active = old_state_value not in ("off", "unknown", "unavailable", None)
         else:

@@ -17,6 +17,9 @@ SERVICE_TURN_ON_APPLIANCE = "turn_on_appliance"
 
 DEFAULT_COOLDOWN_SECONDS = 10
 
+SUPPORTED_APPLIANCE_DOMAINS = ("switch", "light", "climate", "media_player")
+NON_BINARY_ACTIVE_STATE_DOMAINS = ("climate", "media_player")
+
 ATTR_ENTITY_ID = "entity_id"
 ATTR_REASON = "reason"
 

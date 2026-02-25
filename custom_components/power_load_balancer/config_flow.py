@@ -40,6 +40,7 @@ from .const import (
     CONF_POWER_SENSORS,
     DEFAULT_COOLDOWN_SECONDS,
     DOMAIN,
+    SUPPORTED_APPLIANCE_DOMAINS,
 )
 
 if TYPE_CHECKING:
@@ -70,7 +71,9 @@ def _get_power_sensor_selector() -> EntitySelector:
 
 def _get_appliance_selector() -> EntitySelector:
     """Return the entity selector for controllable appliances."""
-    return EntitySelector(EntitySelectorConfig(domain=["switch", "light", "climate"]))
+    return EntitySelector(
+        EntitySelectorConfig(domain=list(SUPPORTED_APPLIANCE_DOMAINS))
+    )
 
 
 def _build_sensor_edit_schema(initial_data: dict[str, Any]) -> vol.Schema:

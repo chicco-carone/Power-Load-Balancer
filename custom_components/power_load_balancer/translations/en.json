@@ -89,7 +89,7 @@
           "name": "Custom Name (Optional)",
           "importance": "Importance (1=Low, 10=High)",
           "last_resort": "Last Resort (Turn off only if absolutely necessary)",
-          "appliance": "Controllable Appliance (Switch or Light)",
+          "appliance": "Controllable Appliance (Switch, Light, Climate or Media Player)",
           "device_cooldown": "Device Cooldown Override (seconds, leave empty for default)"
         },
         "description": "Add a new power sensor to monitor and its corresponding controllable appliance.",
@@ -105,7 +105,7 @@
           "name": "Custom Name (Optional)",
           "importance": "Importance (1=Low, 10=High)",
           "last_resort": "Last Resort (Turn off only if absolutely necessary)",
-          "appliance": "Controllable Appliance (Switch or Light)",
+          "appliance": "Controllable Appliance (Switch, Light, Climate or Media Player)",
           "device_cooldown": "Device Cooldown Override (seconds, leave empty for default)",
           "remove_sensor": "Remove Sensor"
         },
@@ -151,7 +151,7 @@
           "name": "Custom Name (Optional)",
           "importance": "Importance (1=Low, 10=High)",
           "last_resort": "Last Resort (Turn off only if absolutely necessary)",
-          "appliance": "Controllable Appliance (Switch or Light)",
+          "appliance": "Controllable Appliance (Switch, Light, Climate or Media Player)",
           "device_cooldown": "Device Cooldown Override (seconds, leave empty for default)"
         },
         "description": "Add a new power sensor to monitor and its corresponding controllable appliance.",
@@ -167,7 +167,7 @@
           "name": "Custom Name (Optional)",
           "importance": "Importance (1=Low, 10=High)",
           "last_resort": "Last Resort (Turn off only if absolutely necessary)",
-          "appliance": "Controllable Appliance (Switch or Light)",
+          "appliance": "Controllable Appliance (Switch, Light, Climate or Media Player)",
           "device_cooldown": "Device Cooldown Override (seconds, leave empty for default)",
           "remove_sensor": "Remove Sensor"
         },
