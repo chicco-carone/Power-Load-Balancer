@@ -1,13 +1,17 @@
 {
   "domain": "power_load_balancer",
   "name": "Power Load Balancer",
-  "codeowners": [],
+  "codeowners": [
+    "@chicco-carone"
+  ],
   "config_flow": true,
-  "dependencies": ["sensor", "switch"],
-  "integration_type": "device",
-  "issue_tracker": "https://github.com/chicco-carone/Power-Load-Balancer/issues",
+  "dependencies": [
+    "sensor",
+    "switch"
+  ],
   "documentation": "https://github.com/chicco-carone/Power-Load-Balancer#readme",
+  "integration_type": "device",
   "iot_class": "calculated",
-  "code_owners": ["@chicco-carone"],
+  "issue_tracker": "https://github.com/chicco-carone/Power-Load-Balancer/issues",
   "version": "1.1.2"
 }
