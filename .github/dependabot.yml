@@ -16,5 +16,5 @@ updates:
     schedule:
       interval: "daily"
     ignore:
-      # Dependabot should not update Home Assistant as that should match the homeassistant key in hacs.json
+      # Home Assistant development upgrades require manual compatibility checks
       - dependency-name: "homeassistant"

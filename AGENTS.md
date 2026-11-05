@@ -122,8 +122,6 @@ except PowerLoadBalancerError as err:
 Always use exceptions from `exceptions.py` with error codes:
 ```python
 raise ConfigurationError(
-    "Invalid entity",
-    error_code="INVALID_ENTITY",
-    details={"entity_id": entity_id}
+    "Invalid entity", error_code="INVALID_ENTITY", details={"entity_id": entity_id}
 )
 ```

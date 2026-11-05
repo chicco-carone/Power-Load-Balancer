@@ -20,20 +20,34 @@ A Home Assistant custom integration to prevent exceeding your household's power 
 
 Before installing, ensure you have:
 
--   Home Assistant (This has currently been tested from 2025.6 and later).
+-   Home Assistant. The current development environment targets **Home Assistant 2026.11.0** on **Python 3.14.2 or later**.
 -   Power sensors integrated into Home Assistant that provide real-time power consumption (in Watts).
 -   Controllable switch, light, climate, or media_player entities integrated into Home Assistant for the appliances you want to manage.
--   HACS (Home Assistant Community Store) is recommended for easier installation and updates.
+-   Use the built-in **Marketplace** on Home Assistant **2026.11 or later**, or **HACS (Home Assistant Community Store)** on earlier Home Assistant versions, for installation and updates.
 
 ## Installation
 
-### Via HACS (Recommended)
+### Via Marketplace (Home Assistant 2026.11 or later)
 
-[![Open this repository in HACS](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=chicco-carone&repository=Power-Load-Balancer&category=integration)
+Home Assistant 2026.11 includes the [Marketplace](https://www.home-assistant.io/integrations/marketplace/), which replaces HACS. No separate store installation is needed.
+
+1.  As an administrator, open **Settings -> Marketplace** and accept the community-content notice when prompted.
+2.  Search for "Power Load Balancer". If it is not listed, select **Add from link** in the upper-right corner and enter `https://github.com/chicco-carone/Power-Load-Balancer`.
+3.  Connect your GitHub account if prompted. If asked for a content type, select **Integration**, then select **Add**.
+4.  Open the repository page and select **Install**, review the version, and confirm.
+5.  Follow any restart prompt, then continue with [Configuration](#configuration).
+
+If you already installed the integration through HACS, Home Assistant migrates the installation, custom repository, and update entities automatically when you upgrade to 2026.11. You do not need to reinstall it. Existing HACS repository buttons also open the Marketplace. Updates appear under **Settings -> Updates**; restart Home Assistant after updating the integration when prompted. See the [official migration notes](https://www.home-assistant.io/integrations/marketplace/#coming-from-hacs).
+
+### Via HACS (Home Assistant versions before 2026.11)
+
+For older Home Assistant installations, use HACS and select a release compatible with your Home Assistant version. HACS is replaced by the built-in Marketplace on 2026.11 and later.
+
+[![Open this repository in HACS or Marketplace](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=chicco-carone&repository=Power-Load-Balancer&category=integration)
 
 1.  In Home Assistant, navigate to **HACS -> Integrations**.
 2.  Click the three dots in the top right corner and select **"Custom repositories"**.
-3.  Add this url `https://github.com/chicco-carone/Power-Load-Balancer.git`.
+3.  Add this URL `https://github.com/chicco-carone/Power-Load-Balancer`.
 4.  Select the category **"Integration"**.
 5.  Click **"Add"**.
 6.  Search for "Power Load Balancer" in the HACS Integrations list.
@@ -42,7 +56,7 @@ Before installing, ensure you have:
 
 ## Configuration
 
-After installation and restart:
+After installation (and a restart if requested):
 
 1.  In Home Assistant, go to **Settings -> Devices & Services**.
 2.  Click the orange **"+ ADD INTEGRATION"** button.
@@ -98,7 +112,7 @@ Contributions are welcome! If you find a bug or have an idea for a new feature, 
 ### To get started with development:
 1.  Fork the repository and clone it to your local machine.
 2.  Create a new branch for your feature or bug fix.
-3.  Make sure to install the required dependencies (I recommend using `uv`)
+3.  Use Python 3.14.2 or later and install the pinned development dependencies with `./scripts/setup` (or `uv pip install -r requirements.txt` in a virtual environment).
 4.  Make sure to use the provided `configuration.yaml` since it contains necessary template sensors for testing and make sure to include the `template_climate` custom component since its needed for a custom template hvac.
 5.  Test your changes thoroughly.
 6.  Commit your changes with clear messages and push to your fork.
